@@ -1,0 +1,10 @@
+setup.py
+viauth/__init__.py
+viauth/source.py
+viauth/vial.py
+viauth.egg-info/PKG-INFO
+viauth.egg-info/SOURCES.txt
+viauth.egg-info/dependency_links.txt
+viauth.egg-info/not-zip-safe
+viauth.egg-info/requires.txt
+viauth.egg-info/top_level.txt
