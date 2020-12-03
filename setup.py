@@ -6,9 +6,17 @@ setup(
     version=version,
     description=description,
     packages=find_packages(),
+    author='Chia Jason',
+    author_email='unreason78@gmail.com',
+    url='https://github.com/toranova/viauth/',
     include_package_data=True,
     zip_safe=False,
     install_requires=[
         'flask','flask-login','sqlalchemy'
+    ],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
 )
