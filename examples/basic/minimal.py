@@ -1,3 +1,10 @@
+'''
+an absolute basic auth architecture
+to run:
+(in virtualenv)
+export FLASK_APP=minimal
+flask run
+'''
 from flask import Flask, render_template
 from viauth.basic import Arch, AuthUser
 from flask_login import login_required
@@ -12,9 +19,7 @@ arch = Arch(
         )
 u1 = AuthUser('john','test123')
 u2 = AuthUser('james','hello')
-ulist = [u1, u2]
-#arch.update_users(ulist)
-arch.update_users(u1, u2)
+arch.update_users([u1, u2])
 
 app = arch.init_app(app)
 

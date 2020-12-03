@@ -1,3 +1,8 @@
+'''
+basic authentication (username, password)
+no database systems, users defined by python scripts
+'''
+
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -32,24 +37,14 @@ class Arch:
         self.__route = reroutes
         self.__userdict = {}
 
-    def update_users(self, *uargs):
+    def update_users(self, ulist):
         '''
         a primitive way of updating users. this is non-dynamic (i.e., init_app or generate
         is called, the user list is STATIC!
         '''
-        if len(uargs) == 1:
-            if type(uargs[0]) == list:
-                for i, u in enumerate(uargs[0]):
-                    u.id = i
-                    self.__userdict[u.name] = u
-            else:
-                u = uargs[0]
-                u.id = i
-                self.__userdict[u.name] = u
-        else:
-            for i, u in enumerate(uargs):
-                u.id = i
-                self.__userdict[u.name] = u
+        for i, u in enumerate(ulist):
+            u.id = i
+            self.__userdict[u.name] = u
 
     def _find_byid(self, uid):
         for u in self.__userdict.values():
@@ -65,7 +60,7 @@ class Arch:
     def generate(self):
         @source.bp.route('/login', methods=['GET','POST'])
         def login():
-            if(request.method == 'POST'):
+            if request.method == 'POST':
                 username = request.form.get('username')
                 password = request.form.get('password')
                 if not username or not password:
@@ -73,8 +68,8 @@ class Arch:
                 if username in self.__userdict and\
                     self.__userdict[username].check_password(password):
                     login_user(self.__userdict[username])
-                    return redirect(url_for(self.__route.get('login')))
-                flash('invalid credentials','err')
+                    return redirect(url_for(self.__route['login']))
+                source.emflash('invalid credentials')
             return render_template(self.__templ['login'])
         lman = LoginManager()
 
@@ -92,6 +87,7 @@ class Arch:
         @lman.unauthorized_handler
         def unauth():
             flash('please login first', 'err')
+
             return redirect(url_for('viauth.login'))
 
         return source.AppArch(source.bp, lman)

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block title %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+<p>{{ current_user.name }}</p>
+<p>{{ current_user.emailaddr }}</p>
+<p>{{ current_user.created_on }}</p>
+{% endblock %}

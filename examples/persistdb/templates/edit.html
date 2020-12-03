@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+<form method="post">
+	<label>email address</label></br>
+	<input name="emailaddr" required value={{current_user.emailaddr}}></br>
+	<button type="submit">update</button>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+<form method="post">
+	<label>username</label></br>
+	<input name="username" required></br>
+	<label>password</label></br>
+	<input name="password" type="password" required></br>
+	<button type="submit">login</button>
+	<a href="{{url_for('viauth.register')}}">sign up</a>
+</form>
+{% endblock %}
