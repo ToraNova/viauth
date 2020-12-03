@@ -34,11 +34,6 @@ arch.init_app(app)
 def protected():
     return render_template('home.html')
 
-@app.route('/profile')
-@login_required
-def profile():
-    return render_template('profile.html')
-
 @app.route('/users')
 @login_required
 def list():

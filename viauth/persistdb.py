@@ -27,10 +27,14 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
         engine.dispose() #house keeping
         #sqlorm.Base.metadata.create_all(engine) #creates all the metadata
 
-    def __init__(self, name, email, password):
-        super().__init__(name, password)
+    def __init__(self, reqform):
+        super().__init__(reqform.get("username"), reqform.get("password"))
         self.created_on = datetime.datetime.now()
-        self.emailaddr = email
+        self.emailaddr = reqform.get("emailaddr")
+
+    def create_user(name, email, password, form):
+        '''this function should be overridden if using custom authuser class'''
+        return AuthUser(name, email, password)
 
 class Arch:
     def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'} ):
@@ -84,7 +88,7 @@ class Arch:
                 username = request.form.get('username')
                 emailaddr = request.form.get('emailaddr')
                 password = request.form.get('password')
-                newuser = self.auclass(username, emailaddr, password)
+                newuser = self.auclass(request.form)
                 try:
                     self.session.add(newuser)
                     self.session.commit()

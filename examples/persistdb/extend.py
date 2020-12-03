@@ -20,9 +20,9 @@ dburi = 'sqlite:///tmpex.db'
 class ExtendedAuthUser(AuthUser):
     favorite_os = Column(String(), unique=False, nullable=True)
 
-    def __init__(self, name, emailaddr, password, favorite_os):
-        super().__init__(name, emailaddr, password)
-        self.favorite_os = favorite_os
+    def __init__(self, reqform):
+        super().__init__(reqform)
+        self.favorite_os = reqform.get("favos")
 
 try:
     ExtendedAuthUser.create_table(dburi)
@@ -30,7 +30,7 @@ except Exception as e:
     print(e)
 
 arch = Arch(
-        templates = {'login':'login.html','register':'signup.html','profile':'profile.html'},
+        templates = {'login':'login.html','register':'signup.html','profile':'favos_profile.html'},
         reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login'}
         )
 
@@ -43,11 +43,6 @@ arch.init_app(app)
 @login_required
 def protected():
     return render_template('favos.html')
-
-@app.route('/profile')
-@login_required
-def profile():
-    return render_template('favos_profile.html')
 
 @app.route('/update', methods=['GET','POST'])
 @login_required
