@@ -21,7 +21,7 @@ u1 = AuthUser('john','test123')
 u2 = AuthUser('james','hello')
 arch.update_users([u1, u2])
 
-app = arch.init_app(app)
+arch.init_app(app)
 
 @app.route('/')
 @login_required
