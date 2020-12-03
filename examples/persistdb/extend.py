@@ -37,7 +37,7 @@ arch = Arch(
 arch.set_authuserclass(ExtendedAuthUser)
 arch.configure_db(dburi)
 
-app = arch.init_app(app)
+arch.init_app(app)
 
 @app.route('/')
 @login_required
