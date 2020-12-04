@@ -35,10 +35,6 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
         self.created_on = datetime.datetime.now()
         self.emailaddr = reqform.get("emailaddr")
 
-    def create_user(name, email, password, form):
-        '''this function should be overridden if using custom authuser class'''
-        return AuthUser(name, email, password)
-
 class Arch:
     def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'} ):
         '''
