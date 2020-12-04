@@ -1,5 +1,5 @@
 '''
-persistdb.py: sqlalchm extension for basic.py
+persistdb.py: sqlalchemy extension for basic.py
 expect database system (interact with sqlalchemy)
 '''
 import datetime
@@ -8,6 +8,7 @@ from flask_login import login_user, LoginManager, current_user, logout_user, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from viauth import source, basic, sqlorm
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.exc import IntegrityError
 
 class AuthUser(basic.AuthUser, sqlorm.Base):
     '''A basic user authentication account following flask-login
@@ -28,7 +29,9 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
         #sqlorm.Base.metadata.create_all(engine) #creates all the metadata
 
     def __init__(self, reqform):
-        super().__init__(reqform.get("username"), reqform.get("password"))
+        if len(reqform["username"]) < 1 or len(reqform["password"]) < 1:
+            raise ValueError("invalid input length")
+        super().__init__(reqform["username"], reqform["password"])
         self.created_on = datetime.datetime.now()
         self.emailaddr = reqform.get("emailaddr")
 
@@ -45,14 +48,14 @@ class Arch:
         '''
         self.__templ = templates
         self.__route = reroutes
-        self.auclass = AuthUser
+        self.__auclass = AuthUser
 
     def configure_db(self, dburi):
         self.session = sqlorm.connect(dburi)
 
     def set_authuserclass(self, auclass):
         assert issubclass(auclass, AuthUser)
-        self.auclass = auclass
+        self.__auclass = auclass
 
     def init_app(self, app):
         apparch = self.generate()
@@ -65,16 +68,18 @@ class Arch:
         return app
 
     def generate(self):
+        bp = source.make_blueprint()
+
         if(not hasattr(self, 'session')):
             raise AttributeError("db session unconfigured.")
-        @source.bp.route('/login', methods=['GET','POST'])
+        @bp.route('/login', methods=['GET','POST'])
         def login():
             if request.method == 'POST':
                 username = request.form.get('username')
                 password = request.form.get('password')
                 if not username or not password:
                     abort(400)
-                u = self.auclass.query.filter(self.auclass.name == username).first()
+                u = self.__auclass.query.filter(self.__auclass.name == username).first()
                 if u and u.check_password(password):
                     login_user(u)
                     return redirect(url_for(self.__route['login']))
@@ -82,36 +87,35 @@ class Arch:
             return render_template(self.__templ['login'])
         lman = LoginManager()
 
-        @source.bp.route('/register', methods=['GET','POST'])
+        @bp.route('/register', methods=['GET','POST'])
         def register():
             if request.method == 'POST':
-                username = request.form.get('username')
-                emailaddr = request.form.get('emailaddr')
-                password = request.form.get('password')
-                newuser = self.auclass(request.form)
                 try:
+                    newuser = self.__auclass(request.form)
                     self.session.add(newuser)
                     self.session.commit()
                     source.sflash('successfully registered')
                     return redirect(url_for(self.__route['register']))
-                except Exception as e:
+                except IntegrityError as e:
                     self.session.rollback()
+                    source.emflash('username/email-address is taken')
+                except Exception as e:
                     source.eflash(e)
             return render_template(self.__templ['register'])
 
-        @source.bp.route('/profile')
+        @bp.route('/profile')
         @login_required
         def profile():
             return render_template(self.__templ['profile'])
 
-        @source.bp.route('/logout')
+        @bp.route('/logout')
         def logout():
             logout_user()
             return redirect(url_for(self.__route['logout']))
 
         @lman.user_loader
         def loader(uid):
-            u = self.auclass.query.filter(self.auclass.id == uid).first()
+            u = self.__auclass.query.filter(self.__auclass.id == uid).first()
             if u:
                 u.is_authenticated = True
                 return u
@@ -122,4 +126,4 @@ class Arch:
             source.emflash('please login first')
             return redirect(url_for('viauth.login'))
 
-        return source.AppArch(source.bp, lman)
+        return source.AppArch(bp, lman)

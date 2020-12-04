@@ -19,7 +19,7 @@ Base = declarative_base()
 
 def make_dbstruct(dburi):
     '''deprecated, but kept for references'''
-    engine = create_engine(dburi,convert_unicode=True)
+    engine = create_engine(dburi)
     metadata = MetaData(bind=engine)
     session = make_session(engine)
     base = declarative_base()
@@ -33,11 +33,11 @@ def make_session(engine):
     Base.query = sess.query_property()
     return sess
 
-def make_engine(dburi, convert_unicode=True):
+def make_engine(dburi):
     '''create an engine based on an uri
     if the engine does not persist and a new one will be created sooner, call the
     Engine.dispose() method'''
-    return create_engine(dburi, convert_unicode=convert_unicode)
+    return create_engine(dburi)
 
 def connect(dburi):
     '''easy function to connect to a database, returns a session'''

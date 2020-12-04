@@ -55,10 +55,17 @@ class Arch:
         apparch = self.generate()
         apparch.login_manager.init_app(app)
         app.register_blueprint(apparch.bp)
+
+        @app.teardown_appcontext
+        def shutdown_session(exception=None):
+            pass
+
         return app
 
     def generate(self):
-        @source.bp.route('/login', methods=['GET','POST'])
+        bp = source.make_blueprint()
+
+        @bp.route('/login', methods=['GET','POST'])
         def login():
             if request.method == 'POST':
                 username = request.form.get('username')
@@ -73,7 +80,7 @@ class Arch:
             return render_template(self.__templ['login'])
         lman = LoginManager()
 
-        @source.bp.route('/logout')
+        @bp.route('/logout')
         def logout():
             logout_user()
             return redirect(url_for(self.__route['logout']))
@@ -90,4 +97,4 @@ class Arch:
 
             return redirect(url_for('viauth.login'))
 
-        return source.AppArch(source.bp, lman)
+        return source.AppArch(bp, lman)
