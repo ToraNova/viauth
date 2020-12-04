@@ -1,5 +1,6 @@
 # viauth
 [![Build Status](https://travis-ci.org/ToraNova/viauth.svg?branch=master)](https://travis-ci.org/ToraNova/viauth)
+
 A mini flask (vial) project for authentication architecture using [flask-login](https://flask-login.readthedocs.io/en/latest/).
 
 ## Installation
