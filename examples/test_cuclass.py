@@ -43,6 +43,7 @@ def test_redirect(client):
     rv = login(client, "john", "test123")
     assert b'invalid credentials' in rv.data
 
+#TODO: repeat registration test
 @pytest.mark.parametrize(
     ("username", "emailaddr", "password", "message"),
     (
@@ -54,3 +55,20 @@ def test_redirect(client):
 def test_register(client, username, emailaddr, password, message):
     rv = client.post('/viauth/register', data=dict(username=username, emailaddr=emailaddr, password=password), follow_redirects=True)
     assert message in rv.data
+
+def test_login(client):
+    rv = client.post('/viauth/register', data=dict(
+        username="jason", emailaddr="jason@mail", password="test"))
+    assert rv.status_code == 302
+    assert b'/viauth/login' in rv.data
+
+    rv = login(client, "jason", "test")
+    assert rv.status_code == 200
+
+    rv = client.get('/')
+    assert rv.status_code == 200
+    assert b'hello, jason' in rv.data
+
+    rv = client.post('/update', data=dict(favos='linux'))
+    rv = client.get('/viauth/profile')
+    assert b'linux' in rv.data
