@@ -8,7 +8,7 @@ from examples import cuclass
 def app():
     """Create and configure a new app instance for each test."""
     db_fd, db_file = tempfile.mkstemp()
-    db_uri = f'sqlite:///{db_file}'
+    db_uri = 'sqlite:///%s' % db_file
     app = cuclass.create_app({"TESTING": True, "DBURI": db_uri})
 
     # create the database and load test data
