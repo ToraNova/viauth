@@ -4,8 +4,11 @@ from collections import namedtuple
 
 AppArch = namedtuple('AppArch', ['bp','login_manager'])
 
-def make_blueprint():
-    bp = Blueprint(vial.name, __name__, url_prefix='/%s'%vial.name)
+def make_blueprint(prefix=None):
+    if(not prefix):
+        bp = Blueprint(vial.name, __name__, url_prefix='/%s'%vial.name)
+    else:
+        bp = Blueprint(vial.name, __name__, url_prefix=prefix)
 
     @bp.route('/about', methods=['GET'])
     def about():

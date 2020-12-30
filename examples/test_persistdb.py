@@ -26,30 +26,30 @@ def client(app):
     return app.test_client()
 
 def login(client, username, password):
-    return client.post('/viauth/login', data=dict(
+    return client.post('/login', data=dict(
         username=username,
         password=password
     ), follow_redirects=True)
 
 def logout(client):
-    return client.get('/viauth/logout', follow_redirects=True)
+    return client.get('/logout', follow_redirects=True)
 
 def test_redirect(client):
     '''test redirect on protected route'''
     rv = client.get('/')
     assert rv.status_code == 302
-    assert b'/viauth/login' in rv.data
+    assert b'/login' in rv.data
 
     rv = login(client, "john", "test123")
     assert b'invalid credentials' in rv.data
 
 def test_register(client):
-    rv = client.post('/viauth/register', data=dict(
+    rv = client.post('/register', data=dict(
         username="jason", emailaddr="jason@mail", password="test"))
     assert rv.status_code == 302
-    assert b'/viauth/login' in rv.data
+    assert b'/login' in rv.data
 
-    rv = client.post('/viauth/register', data=dict(
+    rv = client.post('/register', data=dict(
         username="jason", emailaddr="jason@mail", password="test"))
     assert b'username/email-address is taken' in rv.data
 
@@ -60,14 +60,14 @@ def test_register(client):
     assert rv.status_code == 200
     assert b'hello, jason' in rv.data
 
-    rv = client.get('/viauth/profile')
+    rv = client.get('/profile')
     assert b'jason@mail' in rv.data
 
     rv = client.post('/update', data=dict(emailaddr='jason@newmail'))
-    rv = client.get('/viauth/profile')
+    rv = client.get('/profile')
     assert b'jason@newmail' in rv.data
 
     rv = logout(client)
     rv = client.get('/')
     assert rv.status_code == 302
-    assert b'/viauth/login' in rv.data
+    assert b'/login' in rv.data

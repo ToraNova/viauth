@@ -25,9 +25,11 @@ def create_app(test_config=None):
         pass
 
     # define a place to find the templates
+    # set url_prefix = '/' to have no url_prefix, leaving it empty will prefix with viauth
     arch = Arch(
         templates = {'login':'login.html','register':'signup.html','profile':'profile.html'},
-        reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login'}
+        reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login'},
+        url_prefix = '/'
     )
 
     arch.configure_db(app.config['DBURI'])

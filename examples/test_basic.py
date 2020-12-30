@@ -21,16 +21,16 @@ def client(app):
 def test_redirect(client):
     '''test redirect on protected route'''
     rv = client.get('/')
-    assert b'You should be redirected automatically to target URL: <a href="/viauth/login">' in rv.data
+    assert b'You should be redirected automatically to target URL: <a href="/basic_example/login">' in rv.data
 
 def login(client, username, password):
-    return client.post('/viauth/login', data=dict(
+    return client.post('/basic_example/login', data=dict(
         username=username,
         password=password
     ), follow_redirects=True)
 
 def logout(client):
-    return client.get('/viauth/logout', follow_redirects=True)
+    return client.get('/basic_example/logout', follow_redirects=True)
 
 def test_login_logout(client):
     '''test login and logout'''

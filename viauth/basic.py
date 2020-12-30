@@ -27,7 +27,7 @@ class AuthUser:
         return check_password_hash(self.passhash, password)
 
 class Arch:
-    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'} ):
+    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix = None ):
         '''
         initialize the architecture for the vial
         templ is a dictionary that returns user specified templates to user on given routes
@@ -36,6 +36,7 @@ class Arch:
         self.__templ = templates
         self.__route = reroutes
         self.__userdict = {}
+        self.__urlprefix = url_prefix
 
     def update_users(self, ulist):
         '''
@@ -63,7 +64,7 @@ class Arch:
         return app
 
     def generate(self):
-        bp = source.make_blueprint()
+        bp = source.make_blueprint(self.__urlprefix)
 
         @bp.route('/login', methods=['GET','POST'])
         def login():

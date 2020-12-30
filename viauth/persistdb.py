@@ -35,16 +35,10 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
         self.created_on = datetime.datetime.now()
         self.emailaddr = reqform.get("emailaddr")
 
-class Arch:
-    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'} ):
-        '''
-        initialize the architecture for the vial
-        templ is a dictionary that returns user specified templates to user on given routes
-        reroutes is a dictionary that reroutes the user after certain actions on given routes
-        '''
-        self.__templ = templates
-        self.__route = reroutes
-        self.__auclass = AuthUser
+class Arch(basic.Arch):
+    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix=None, authuserclass=AuthUser ):
+        super().__init__(templates, reroutes, url_prefix)
+        self.__auclass = authuserclass
 
     def configure_db(self, dburi):
         self.session = sqlorm.connect(dburi)
@@ -64,7 +58,7 @@ class Arch:
         return app
 
     def generate(self):
-        bp = source.make_blueprint()
+        bp = source.make_blueprint(self.__urlprefix)
 
         if(not hasattr(self, 'session')):
             raise AttributeError("db session unconfigured.")

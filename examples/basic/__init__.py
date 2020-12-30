@@ -16,9 +16,11 @@ def create_app(test_config=None):
     if test_config:
         app.config.from_mapping(test_config)
 
+    # set url_prefix = '/' to have no url_prefix, leaving it empty (None) will prefix with viauth
     arch = Arch(
         templates = {'login':'login.html'},
-        reroutes= {'login':'protected','logout':'viauth.login'}
+        reroutes= {'login':'protected','logout':'viauth.login'},
+        url_prefix = '/basic_example'
     )
 
     u1 = AuthUser('john','test123')
