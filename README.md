@@ -9,6 +9,11 @@ Recommend to do this in a virtual environment!
 pip install git+git://github.com/toranova/viauth.git@master
 ```
 
+## Testing the current build
+```bash
+pytest examples
+```
+
 ## Examples
 1. [Minimal Login (No Database)](examples/basic/__init__.py)
 2. [With SQLAlchemy](examples/persistdb/__init__.py)
