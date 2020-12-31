@@ -22,9 +22,10 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
     emailaddr = Column(String(254),unique=True,nullable=True)
     is_authenticated = False # default is false, unless the app sets to true
 
-    def create_table(dburi):
+    @classmethod
+    def create_table(cls, dburi):
         engine = sqlorm.make_engine(dburi)
-        AuthUser.__table__.create(engine)
+        cls.__table__.create(engine)
         engine.dispose() #house keeping
         #sqlorm.Base.metadata.create_all(engine) #creates all the metadata
 
@@ -36,16 +37,11 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
         self.emailaddr = reqform.get("emailaddr")
 
 class Arch(basic.Arch):
-    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix=None, authuserclass=AuthUser ):
+    def __init__(self, dburi, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix=None, authuser_class=AuthUser ):
         super().__init__(templates, reroutes, url_prefix)
-        self.__auclass = authuserclass
-
-    def configure_db(self, dburi):
+        assert issubclass(authuser_class, AuthUser)
+        self.__auclass = authuser_class
         self.session = sqlorm.connect(dburi)
-
-    def set_authuserclass(self, auclass):
-        assert issubclass(auclass, AuthUser)
-        self.__auclass = auclass
 
     def init_app(self, app):
         apparch = self.generate()
