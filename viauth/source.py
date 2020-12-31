@@ -5,10 +5,8 @@ from collections import namedtuple
 AppArch = namedtuple('AppArch', ['bp','login_manager'])
 
 def make_blueprint(prefix=None):
-    if(not prefix):
-        bp = Blueprint(vial.name, __name__, url_prefix='/%s'%vial.name)
-    else:
-        bp = Blueprint(vial.name, __name__, url_prefix=prefix)
+    prefix = prefix if prefix else vial.name
+    bp = Blueprint(vial.name, __name__, url_prefix=prefix)
 
     @bp.route('/about', methods=['GET'])
     def about():
