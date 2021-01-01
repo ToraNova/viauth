@@ -15,6 +15,7 @@ def make_blueprint(prefix=None):
     return bp
 
 def eflash(exception):
+    print(exception)
     flash("an exception (%s) has occurred: %s" % (type(exception).__name__, str(exception)), 'err')
 
 def emflash(msg):

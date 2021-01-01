@@ -63,5 +63,4 @@ def create_app(test_config=None):
                 arch.session.rollback()
                 return e
         return render_template('favos_edit.html')
-
     return app

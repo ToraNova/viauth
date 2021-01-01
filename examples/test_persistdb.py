@@ -37,8 +37,7 @@ def logout(client):
 def test_redirect(client):
     '''test redirect on protected route'''
     rv = client.get('/')
-    assert rv.status_code == 302
-    assert b'/login' in rv.data
+    assert rv.status_code == 302 and b'nope' in rv.data
 
     rv = login(client, "john", "test123")
     assert b'invalid credentials' in rv.data
@@ -69,5 +68,16 @@ def test_register(client):
 
     rv = logout(client)
     rv = client.get('/')
-    assert rv.status_code == 302
-    assert b'/login' in rv.data
+    assert rv.status_code == 302 and b'nope' in rv.data
+
+    rv = client.get('/profile')
+    assert rv.status_code == 302 and b'nope' in rv.data
+
+    rv = client.post('/update', data=dict(emailaddr='jason@nomail'))
+    assert rv.status_code == 302 and b'nope' in rv.data
+
+    rv = login(client, "jason", "test")
+    assert rv.status_code == 200
+
+    rv = client.get('/profile')
+    assert b'jason@newmail' in rv.data

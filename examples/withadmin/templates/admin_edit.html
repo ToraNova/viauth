@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+<form method="post">
+	<label>email address</label></br>
+	<input name="emailaddr" required value="{{data.emailaddr}}"></br>
+	<label>is admin?</label>
+	{% if data.is_admin %}
+		<input name="is_admin" type="checkbox" checked>
+	{% else %}
+		<input name="is_admin" type="checkbox">
+	{% endif %}
+	</br>
+	<button type="submit">update</button>
+</form>
+{% endblock %}

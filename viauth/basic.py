@@ -26,8 +26,13 @@ class AuthUser:
     def check_password(self, password):
         return check_password_hash(self.passhash, password)
 
+'''
+basic.Arch
+templates: login
+reroutes: login, logout, unauth
+'''
 class Arch:
-    def __init__(self, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix = None ):
+    def __init__(self, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix = None):
         '''
         initialize the architecture for the vial
         templ is a dictionary that returns user specified templates to user on given routes
@@ -35,8 +40,15 @@ class Arch:
         '''
         self.__templ = templates
         self.__route = reroutes
-        self.__userdict = {}
+        self.__rkarg = reroutes_kwarg
+        self.__default_tp('login', 'login.html')
+        self.__default_rt('login', 'home')
+        self.__default_rt('logout','viauth.login')
+        self.__default_rt('unauth','viauth.login')
+        assert self.__templ['login']
+        assert self.__route['login'] and self.__route['logout'] and self.__route['unauth']
         self.__urlprefix = url_prefix
+        self.__userdict = {}
 
     def update_users(self, ulist):
         '''
@@ -63,8 +75,27 @@ class Arch:
 
         return app
 
+    def __reroute(self, fromkey):
+        if self.__rkarg.get(fromkey):
+            return redirect(url_for(self.__route[fromkey], **self.__rkarg.get(fromkey)))
+        else:
+            return redirect(url_for(self.__route[fromkey]))
+
+    def __default_tp(self, key, value):
+        if not self.__templ.get(key):
+            self.__templ[key] = value
+
+    def __default_rt(self, key, value):
+        if not self.__route.get(key):
+            self.__route[key] = value
+
     def generate(self):
+        bp, lman = self.__make_bp_lman()
+        return source.AppArch(bp, lman)
+
+    def __make_bp_lman(self):
         bp = source.make_blueprint(self.__urlprefix)
+        lman = LoginManager()
 
         @bp.route('/login', methods=['GET','POST'])
         def login():
@@ -76,26 +107,23 @@ class Arch:
                 if username in self.__userdict and\
                     self.__userdict[username].check_password(password):
                     login_user(self.__userdict[username])
-                    return redirect(url_for(self.__route['login']))
+                    return self.__reroute('login')
                 source.emflash('invalid credentials')
             return render_template(self.__templ['login'])
-        lman = LoginManager()
 
         @bp.route('/logout')
         def logout():
             logout_user()
-            return redirect(url_for(self.__route['logout']))
+            return self.__reroute('logout')
+
+        @lman.unauthorized_handler
+        def unauth():
+            source.emflash('unauthorized access')
+            return self.__reroute('unauth')
 
         @lman.user_loader
         def loader(uid):
             u = self._find_byid(uid)
             u.is_authenticated = True
             return u
-
-        @lman.unauthorized_handler
-        def unauth():
-            flash('please login first', 'err')
-
-            return redirect(url_for('viauth.login'))
-
-        return source.AppArch(bp, lman)
+        return bp, lman

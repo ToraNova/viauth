@@ -4,7 +4,6 @@
 {% block header %}{% endblock %}
 
 {% block content %}
-{% for u in data %}
-<p>{{u.name}}</p>
-{% endfor %}
+<h1>Nope</h1>
+<a href="{{ url_for('viauth.login') }}">back to login</a>
 {% endblock %}

@@ -7,6 +7,7 @@
 <p>name: {{ current_user.name }}</p>
 <p>email: {{ current_user.emailaddr }}</p>
 <p>created on: {{ current_user.created_on }}</p>
+<p>is admin: {{ current_user.is_admin }}</p>
 
 <a href="{{ url_for('viauth.update') }}">update profile</a>
 {% endblock %}

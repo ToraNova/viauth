@@ -5,8 +5,7 @@ expect database system (interact with sqlalchemy)
 import datetime
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from werkzeug.security import generate_password_hash, check_password_hash
-from viauth import source, basic, sqlorm
+from viauth import source, basic, sqlorm, userpriv
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.exc import IntegrityError
 
@@ -34,11 +33,26 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
             raise ValueError("invalid input length")
         super().__init__(reqform["username"], reqform["password"])
         self.created_on = datetime.datetime.now()
+        self.update(reqform)
+
+    def update(self, reqform):
         self.emailaddr = reqform.get("emailaddr")
 
+'''
+persistdb.Arch
+templates: login, (register, profile, update)
+reroutes: login, logout, unauth, (register, update)
+'''
 class Arch(basic.Arch):
-    def __init__(self, dburi, templates = {'login':'login.html'}, reroutes = {'login':'home','logout':'viauth.login'}, url_prefix=None, authuser_class=AuthUser ):
-        super().__init__(templates, reroutes, url_prefix)
+    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser):
+        super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
+        self.__default_tp('register', 'register.html')
+        self.__default_tp('profile', 'profile.html')
+        self.__default_tp('update', 'update.html')
+        self.__default_rt('register', 'viauth.login') # go to login after registration
+        self.__default_rt('update', 'viauth.profile') # go to profile after profile update
+        assert self.__templ['register'] and self.__templ['profile'] and self.__templ['update']
+        assert self.__route['register'] and self.__route['update']
         assert issubclass(authuser_class, AuthUser)
         self.__auclass = authuser_class
         self.session = sqlorm.connect(dburi)
@@ -53,8 +67,9 @@ class Arch(basic.Arch):
             self.session.remove()
         return app
 
-    def generate(self):
+    def __make_bp_lman(self):
         bp = source.make_blueprint(self.__urlprefix)
+        lman = LoginManager()
 
         if(not hasattr(self, 'session')):
             raise AttributeError("db session unconfigured.")
@@ -68,10 +83,9 @@ class Arch(basic.Arch):
                 u = self.__auclass.query.filter(self.__auclass.name == username).first()
                 if u and u.check_password(password):
                     login_user(u)
-                    return redirect(url_for(self.__route['login']))
+                    return self.__reroute('login')
                 source.emflash('invalid credentials')
             return render_template(self.__templ['login'])
-        lman = LoginManager()
 
         @bp.route('/register', methods=['GET','POST'])
         def register():
@@ -81,13 +95,49 @@ class Arch(basic.Arch):
                     self.session.add(newuser)
                     self.session.commit()
                     source.sflash('successfully registered')
-                    return redirect(url_for(self.__route['register']))
+                    return self.__reroute('register')
                 except IntegrityError as e:
                     self.session.rollback()
                     source.emflash('username/email-address is taken')
                 except Exception as e:
                     source.eflash(e)
             return render_template(self.__templ['register'])
+
+        # update self
+        @bp.route('/update', methods=['GET','POST'])
+        @login_required
+        def update():
+            if request.method == 'POST':
+                if request.form.get('is_admin'):
+                    # normal user can't elevate themselves
+                    abort(403) # no permission
+                u = AuthUser.query.filter(AuthUser.id == current_user.id).first()
+                try:
+                    u.update(request.form)
+                    self.session.add(u)
+                    self.session.commit()
+                    source.emflash('profile updated')
+                    return self.__reroute('update')
+                except Exception as e:
+                    self.session.rollback()
+                    source.eflash(e)
+            return render_template(self.__templ['update'])
+
+        @bp.route('/delete')
+        @login_required
+        def delete():
+            try:
+                tar = AuthUser.query.filter(AuthUser.id == current_user.id).first()
+                if not tar:
+                    abort(400)
+                self.session.delete(tar)
+                self.session.commit()
+                source.emflash('account deleted')
+                return redirect(url_for('viauth.logout'))
+            except Exception as e:
+                self.session.rollback()
+                source.eflash(e)
+                return redirect(url_for('viauth.profile'))
 
         @bp.route('/profile')
         @login_required
@@ -97,7 +147,8 @@ class Arch(basic.Arch):
         @bp.route('/logout')
         def logout():
             logout_user()
-            return redirect(url_for(self.__route['logout']))
+            source.sflash('logged out')
+            return self.__reroute('logout')
 
         @lman.user_loader
         def loader(uid):
@@ -109,7 +160,7 @@ class Arch(basic.Arch):
 
         @lman.unauthorized_handler
         def unauth():
-            source.emflash('please login first')
-            return redirect(url_for('viauth.login'))
+            source.emflash('unauthorized access')
+            return self.__reroute('unauth')
 
-        return source.AppArch(bp, lman)
+        return bp, lman

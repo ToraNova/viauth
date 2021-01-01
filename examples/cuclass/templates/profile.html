@@ -4,8 +4,10 @@
 {% block header %}{% endblock %}
 
 {% block content %}
-<p>{{ current_user.name }}</p>
-<p>{{ current_user.emailaddr }}</p>
-<p>{{ current_user.favorite_os }}</p>
-<p>{{ current_user.created_on }}</p>
+<p>name: {{ current_user.name }}</p>
+<p>email: {{ current_user.emailaddr }}</p>
+<p>favourite os: {{ current_user.favorite_os }}</p>
+<p>created on: {{ current_user.created_on }}</p>
+
+<a href="{{ url_for('viauth.update') }}">update profile</a>
 {% endblock %}

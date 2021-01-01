@@ -6,7 +6,7 @@
 {% block content %}
 <form method="post">
 	<label>favorite operating system</label></br>
-	<input name="favos" required value={{current_user.favorite_os}}></br>
+	<input name="favos" required value="{{current_user.favorite_os}}"></br>
 	<button type="submit">update</button>
 </form>
 {% endblock %}

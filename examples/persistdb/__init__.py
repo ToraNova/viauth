@@ -28,8 +28,13 @@ def create_app(test_config=None):
     # set url_prefix = '/' to have no url_prefix, leaving it empty will prefix with viauth
     arch = Arch(
         app.config['DBURI'],
-        templates = {'login':'login.html','register':'signup.html','profile':'profile.html'},
-        reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login'},
+        templates = {
+                'login':'login.html',
+                'register':'signup.html',
+                'profile':'profile.html',
+                'update': 'edit.html'
+            },
+        reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login','unauth':'nope'},
         url_prefix = '/'
     )
 
@@ -40,36 +45,26 @@ def create_app(test_config=None):
     def protected():
         return render_template('home.html')
 
+    @app.route('/nope')
+    def nope():
+        return render_template('nope.html')
+
     @app.route('/users')
     @login_required
     def list():
         ulist = AuthUser.query.all()
         return render_template('ulist.html', data=ulist)
 
-    @app.route('/update', methods=['GET','POST'])
-    @login_required
-    def update():
-        if request.method == 'POST':
-            emailaddr = request.form.get('emailaddr')
-            tar = AuthUser.query.filter(AuthUser.id == current_user.id).first()
-            tar.emailaddr = emailaddr
-            try:
-                arch.session.add(tar)
-                arch.session.commit()
-                return redirect(url_for('protected'))
-            except Exception as e:
-                arch.session.rollback()
-                return e
-        return render_template('edit.html')
-
-    @app.route('/delete')
-    @login_required
-    def delete():
+    # test case on how to commit/update
+    @app.route('/reset_emails')
+    def unset():
+        ulist = AuthUser.query.all()
         try:
-            tar = AuthUser.query.filter(AuthUser.id == current_user.id).first()
-            arch.session.delete(tar)
+            for u in ulist:
+                u.emailaddr = None
+                arch.session.add(u)
             arch.session.commit()
-            return redirect(url_for('viauth.logout'))
+            return redirect(url_for('list'))
         except Exception as e:
             arch.session.rollback()
             return e
