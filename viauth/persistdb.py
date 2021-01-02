@@ -24,7 +24,7 @@ class AuthUser(basic.AuthUser, sqlorm.Base):
     @classmethod
     def create_table(cls, dburi):
         engine = sqlorm.make_engine(dburi)
-        cls.__table__.create(engine)
+        cls.__table__.create(engine, checkfirst=True)
         engine.dispose() #house keeping
         #sqlorm.Base.metadata.create_all(engine) #creates all the metadata
 

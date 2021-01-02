@@ -29,12 +29,16 @@ def create_app(test_config=None):
     arch = Arch(
         app.config['DBURI'],
         templates = {
-                'login':'login.html',
-                'register':'signup.html',
-                'profile':'profile.html',
-                'update': 'edit.html'
+            'login':'login.html',
+            'register':'signup.html',
+            'profile':'profile.html'
             },
-        reroutes= {'login':'protected','logout':'viauth.login','register':'viauth.login','unauth':'nope'},
+        reroutes= {
+            'login':'protected',
+            'logout':'viauth.login',
+            'register':'viauth.login',
+            'unauth':'nope'
+            },
         url_prefix = '/'
     )
 
