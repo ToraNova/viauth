@@ -4,7 +4,8 @@ expect database system (interact with sqlalchemy)
 '''
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from viauth import source, sqlorm, userpriv, persistdb
+from viauth import source, sqlorm, userpriv
+from viauth.persistdb import persistdb
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.exc import IntegrityError
 

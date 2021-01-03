@@ -7,7 +7,7 @@ EXPORT FLASK_APP = simpleadmin
 flask run
 '''
 from flask import Flask, render_template, redirect, url_for, request
-from viauth.withadmin import Arch, AuthUser
+from viauth.persistdb.withadmin import Arch, AuthUser
 from flask_login import login_required, current_user
 from viauth import userpriv
 
@@ -65,6 +65,17 @@ def create_app(test_config=None):
     @login_required
     def home(test):
         return render_template('home.html')
+
+    @app.route('/set_admin')
+    @login_required
+    def set_admin():
+        u = arch.session.query(AuthUser).filter(AuthUser.id == current_user.id).first()
+        if not u:
+            abort(400)
+        u.is_admin = True
+        arch.session.add(u)
+        arch.session.commit()
+        return 'ok'
 
     # admin only
     # to add the first admin, edit is_admin directly from database, or insert upon database creation

@@ -4,7 +4,8 @@ expect database system (interact with sqlalchemy)
 '''
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from viauth import source, sqlorm, withadmin, basic
+from viauth import source, sqlorm, basic
+from viauth.persistdb import persistdb
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -25,7 +26,7 @@ class AuthRole(sqlorm.Base):
         self.name = reqform.get('name')
         self.level = reqform.get('level')
 
-class AuthUser(withadmin.AuthUser):
+class AuthUser(persistdb.AuthUser):
     rid = Column(Integer, ForeignKey('authrole.id'), nullable=True)
     role = relationship("AuthRole", back_populates="auth_users")
 

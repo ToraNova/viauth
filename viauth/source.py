@@ -10,12 +10,11 @@ def make_blueprint(prefix=None):
 
     @bp.route('/about', methods=['GET'])
     def about():
-        return '%s %s: %s\n' % (vial.name, vial.version, vial.description)
+        return '%s %s: %s, written by toranova\n' % (vial.name, vial.version, vial.description)
 
     return bp
 
 def eflash(exception):
-    print(exception)
     flash("an exception (%s) has occurred: %s" % (type(exception).__name__, str(exception)), 'err')
 
 def emflash(msg):
