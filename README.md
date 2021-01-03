@@ -11,7 +11,7 @@ pip install git+git://github.com/toranova/viauth.git@master
 
 ## Testing the current build
 ```bash
-pytest examples
+runtest.sh
 ```
 
 ## Examples
