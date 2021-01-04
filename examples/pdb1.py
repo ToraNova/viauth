@@ -34,15 +34,14 @@ def login(client, username, password):
 def logout(client):
     return client.get('/logout', follow_redirects=True)
 
-def test_redirect(client):
+def test_run(client):
     '''test redirect on protected route'''
     rv = client.get('/')
-    assert rv.status_code == 302 and b'nope' in rv.data
+    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
 
     rv = login(client, "john", "test123")
     assert b'invalid credentials' in rv.data
 
-def test_register(client):
     rv = client.post('/register', data=dict(
         username="jason", emailaddr="jason@mail", password="test"))
     assert rv.status_code == 302
@@ -68,13 +67,13 @@ def test_register(client):
 
     rv = logout(client)
     rv = client.get('/')
-    assert rv.status_code == 302 and b'nope' in rv.data
+    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
 
     rv = client.get('/profile')
-    assert rv.status_code == 302 and b'nope' in rv.data
+    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
 
     rv = client.post('/update', data=dict(emailaddr='jason@nomail'))
-    assert rv.status_code == 302 and b'nope' in rv.data
+    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
 
     rv = login(client, "jason", "test")
     assert rv.status_code == 200

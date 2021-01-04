@@ -18,11 +18,6 @@ def client(app):
     """A test client for the app."""
     return app.test_client()
 
-def test_redirect(client):
-    '''test redirect on protected route'''
-    rv = client.get('/')
-    assert b'You should be redirected automatically to target URL: <a href="/basic_example/login">' in rv.data
-
 def login(client, username, password):
     return client.post('/basic_example/login', data=dict(
         username=username,
@@ -32,8 +27,11 @@ def login(client, username, password):
 def logout(client):
     return client.get('/basic_example/logout', follow_redirects=True)
 
-def test_login_logout(client):
-    '''test login and logout'''
+def test_run(client):
+    '''main test'''
+
+    rv = client.get('/')
+    assert b'login required.' in rv.data
 
     rv = login(client, "john", "test123")
     assert b'hello john, you are authenticated' in rv.data

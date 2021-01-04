@@ -20,14 +20,18 @@ def admin_required(fn):
 
 '''
 if using role-based access model, current_user.role.name must be exactly 'name'
+THIS IS CASE SENSITIVE!
 '''
 def role_required(name):
     def outer_dec(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
-            if not current_user.role.name:
-                # no role / not logged in
+            if not current_user.is_authenticated:
+                # not logged in
                 abort(401)
+            if not hasattr(current_user, 'role') or not hasattr(current_user.role, 'name'):
+                # no role
+                abort(403)
             if current_user.role.name != name:
                 # not the role
                 abort(403)
@@ -37,14 +41,18 @@ def role_required(name):
 
 '''
 if using role-based access model, current_user.role.name must not be 'name'
+THIS IS CASE SENSITIVE!
 '''
 def role_banned(name):
     def outer_dec(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
-            if not current_user.role.name:
-                # no role / not logged in
+            if not current_user.is_authenticated:
+                #not logged in
                 abort(401)
+            if not hasattr(current_user, 'role') or not hasattr(current_user.role, 'name'):
+                # no role
+                abort(403)
             if current_user.role.name == name:
                 # not the role
                 abort(403)
@@ -61,9 +69,12 @@ def level_atmost(level):
     def outer_dec(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
-            if not current_user.role.level:
-                # no role / not logged in
+            if not current_user.is_authenticated:
+                #not logged in
                 abort(401)
+            if not hasattr(current_user, 'role') or not hasattr(current_user.role, 'level'):
+                # no role
+                abort(403)
             if current_user.role.level > level:
                 # exceeded privilege level
                 abort(403)
@@ -81,9 +92,12 @@ def level_atleast(level):
     def outer_dec(fn):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
-            if not current_user.role.level:
-                # no role / not logged in
+            if not current_user.is_authenticated:
+                #not logged in
                 abort(401)
+            if not hasattr(current_user, 'role') or not hasattr(current_user.role, 'level'):
+                # no role
+                abort(403)
             if current_user.role.level < level:
                 # insufficient privilege level
                 abort(403)

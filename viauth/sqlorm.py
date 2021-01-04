@@ -10,7 +10,7 @@
 #--------------------------------------------------
 
 from collections import namedtuple
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, inspect
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -43,3 +43,39 @@ def connect(dburi):
     '''easy function to connect to a database, returns a session'''
     engine = make_engine(dburi)
     return make_session(engine)
+
+class ViAuthBase:
+
+    def delete(self):
+        pass
+
+    def getform_tf(self, reqform, value):
+        formval = reqform.get(value)
+        if formval is None:
+            return False
+        if type(formval) is bool:
+            return formval
+        formval = formval.lower()
+        return formval == "on" or formval == "1" or formval == "yes" or formval == "true" or formval == "t"
+
+    def formgen_assist(session):
+        return None
+
+    def select_assist(self):
+        return None
+
+    # create table if not exist on dburi
+    @classmethod
+    def create_table(cls, dburi):
+        engine = make_engine(dburi)
+        cls.__table__.create(engine, checkfirst=True)
+        engine.dispose() #house keeping
+
+    # check if table exists in dburi
+    @classmethod
+    def table_exists(cls, dburi):
+        engine = make_engine(dburi)
+        ins = inspect(engine)
+        res = cls.__tablename__ in ins.get_table_names()
+        engine.dispose()
+        return res

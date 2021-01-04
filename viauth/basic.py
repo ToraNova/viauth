@@ -4,8 +4,9 @@ no database systems, users defined by python scripts
 '''
 
 from flask import render_template, request, redirect, abort, flash, url_for
-from flask_login import login_user, LoginManager, current_user, logout_user
+from flask_login import login_user, LoginManager, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
+from jinja2.exceptions import TemplateNotFound
 from viauth import source
 
 class AuthUser:
@@ -28,8 +29,8 @@ class AuthUser:
 
 '''
 basic.Arch
-templates: login
-reroutes: login, logout, unauth
+templates: login, profile, unauth
+reroutes: login, logout
 '''
 class Arch:
     def __init__(self, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix = None):
@@ -42,11 +43,10 @@ class Arch:
         self.__route = reroutes
         self.__rkarg = reroutes_kwarg
         self.__default_tp('login', 'login.html')
-        self.__default_rt('login', 'home')
+        self.__default_tp('profile', 'profile.html')
+        self.__default_tp('unauth','unauth.html')
+        self.__default_rt('login', 'viauth.profile')
         self.__default_rt('logout','viauth.login')
-        self.__default_rt('unauth','viauth.login')
-        assert self.__templ['login']
-        assert self.__route['login'] and self.__route['logout'] and self.__route['unauth']
         self.__urlprefix = url_prefix
         self.__userdict = {}
 
@@ -89,13 +89,35 @@ class Arch:
         if not self.__route.get(key):
             self.__route[key] = value
 
+    def __unauth(self):
+        try:
+            tpl = render_template(self.__templ['unauth'])
+            return tpl
+        except TemplateNotFound:
+            return 'login required.'
+
     def generate(self):
-        bp, lman = self.__make_bp_lman()
+        bp = self.__make_bp()
+        lman = self.__make_lman()
         return source.AppArch(bp, lman)
 
-    def __make_bp_lman(self):
-        bp = source.make_blueprint(self.__urlprefix)
+    def __make_lman(self):
         lman = LoginManager()
+
+        @lman.unauthorized_handler
+        def unauth():
+            return self.__unauth()
+
+        @lman.user_loader
+        def loader(uid):
+            u = self._find_byid(uid)
+            u.is_authenticated = True
+            return u
+
+        return lman
+
+    def __make_bp(self):
+        bp = source.make_blueprint(self.__urlprefix)
 
         @bp.route('/login', methods=['GET','POST'])
         def login():
@@ -111,19 +133,14 @@ class Arch:
                 source.emflash('invalid credentials')
             return render_template(self.__templ['login'])
 
+        @bp.route('/profile')
+        @login_required
+        def profile():
+            return render_template(self.__templ['profile'])
+
         @bp.route('/logout')
         def logout():
             logout_user()
             return self.__reroute('logout')
 
-        @lman.unauthorized_handler
-        def unauth():
-            source.emflash('unauthorized access')
-            return self.__reroute('unauth')
-
-        @lman.user_loader
-        def loader(uid):
-            u = self._find_byid(uid)
-            u.is_authenticated = True
-            return u
-        return bp, lman
+        return bp

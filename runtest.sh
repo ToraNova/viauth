@@ -5,10 +5,10 @@ tests=(\
 	examples/b1.py\
 	examples/pdb1.py\
 	examples/cu1.py\
-	examples/bwa1.py\
+	examples/pdbwa1.py\
 );
 for t in ${tests[@]}; do
-	pytest $t;
+	pytest $t -s;
 	[ "$?" -eq 1 ] && exit 1;
 done
 exit 0;

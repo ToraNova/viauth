@@ -7,21 +7,24 @@ EXPORT FLASK_APP = simpleadmin
 flask run
 '''
 from flask import Flask, render_template, redirect, url_for, request
-from viauth.persistdb.withadmin import Arch, AuthUser
+from viauth.persistdb.withroles import Arch, AuthUser, AuthRole
 from flask_login import login_required, current_user
 from viauth import userpriv
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.secret_key = 'v3rypowerfuls3cret, or not. CHANGE THIS!@'
-    app.config['DBURI'] = 'sqlite:///watmp.db'
+    app.config['DBURI'] = 'sqlite:///wrtmp.db'
     app.testing = False
     if test_config:
         app.config.from_mapping(test_config)
 
+    addflag = not AuthRole.table_exists(app.config['DBURI'])
+
     # create table
     try:
         AuthUser.create_table(app.config['DBURI'])
+        AuthRole.create_table(app.config['DBURI'])
     except Exception as e:
         #print(e)
         pass
@@ -37,49 +40,50 @@ def create_app(test_config=None):
     arch = Arch(
         app.config['DBURI'],
         templates = {
-            'login':'login.html',
             'register':'signup.html',
-            'profile':'profile.html',
             'update': 'edit.html',
             'users': 'ulist.html',
             'update_other': 'admin_edit.html'
         },
         reroutes = {
-            'logout':'viauth.login',
-            'register':'viauth.login',
-            'update': 'viauth.profile',
-            'update_other': 'viauth.users',
-            'delete_other': 'viauth.users',
-            'register_other': 'viauth.users'
-        },
-        reroutes_kwarg = {'login': {'test':'1'}}
+            'login': 'viauth.profile'
+        }
     )
 
     arch.init_app(app)
+
+    if addflag:
+        for r in [{"name":"admin","level":0}, {"name":"peasant","level":4}, {"name":"premium","level":3}]:
+            nr = AuthRole(r)
+            arch.session.add(nr)
+        arch.session.commit()
 
     @app.route('/')
     def root():
         return redirect(url_for('viauth.login'))
 
-    # testing kwargs as well here
-    @app.route('/home/<test>')
-    @login_required
-    def home(test):
-        return render_template('home.html')
+    @app.route('/content')
+    @userpriv.role_required('premium')
+    def content():
+        return 'you must pay good buck for this.'
 
-    @app.route('/set_admin')
+    @app.route('/nopay')
     @login_required
-    def set_admin():
-        current_user.is_admin = True
+    def unpay():
+        current_user.rid = None
         arch.session.add(current_user)
         arch.session.commit()
-        return 'ok'
+        return 'no premium for you'
 
-    # admin only
-    # to add the first admin, edit is_admin directly from database, or insert upon database creation
-    @app.route('/admin_secret')
-    @userpriv.admin_required
-    def admin_secret():
-        return 'you are an admin!'
+    @app.route('/pay')
+    @login_required
+    def pay():
+        pr = AuthRole.query.filter(AuthRole.name == "premium").first()
+        if not pr:
+            abort(500)
+        current_user.rid = pr.id
+        arch.session.add(current_user)
+        arch.session.commit()
+        return 'thanks'
 
     return app

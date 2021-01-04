@@ -31,13 +31,13 @@ def create_app(test_config=None):
         templates = {
             'login':'login.html',
             'register':'signup.html',
-            'profile':'profile.html'
+            'profile':'profile.html',
+            'unauth':'nope.html'
             },
         reroutes= {
             'login':'protected',
             'logout':'viauth.login',
-            'register':'viauth.login',
-            'unauth':'nope'
+            'register':'viauth.login'
             },
         url_prefix = '/'
     )
@@ -48,10 +48,6 @@ def create_app(test_config=None):
     @login_required
     def protected():
         return render_template('home.html')
-
-    @app.route('/nope')
-    def nope():
-        return render_template('nope.html')
 
     @app.route('/users')
     @login_required

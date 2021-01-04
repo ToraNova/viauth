@@ -34,15 +34,6 @@ def login(client, username, password):
 def logout(client):
     return client.get('/viauth/logout', follow_redirects=True)
 
-def test_redirect(client):
-    '''test redirect on protected route'''
-    rv = client.get('/')
-    assert rv.status_code == 302
-    assert b'/viauth/login' in rv.data
-
-    rv = login(client, "john", "test123")
-    assert b'invalid credentials' in rv.data
-
 #TODO: repeat registration test
 @pytest.mark.parametrize(
     ("username", "emailaddr", "password", "message"),
@@ -52,11 +43,19 @@ def test_redirect(client):
         ("bob", "", "test", b"successfully registered"),
     ),
 )
-def test_register(client, username, emailaddr, password, message):
+def test_params(client, username, emailaddr, password, message):
     rv = client.post('/viauth/register', data=dict(username=username, emailaddr=emailaddr, password=password), follow_redirects=True)
     assert message in rv.data
 
-def test_login(client):
+def test_run(client):
+    '''main test'''
+
+    rv = client.get('/')
+    assert rv.status_code == 200 and b'login required.' in rv.data
+
+    rv = login(client, "john", "test123")
+    assert b'invalid credentials' in rv.data
+
     rv = client.post('/viauth/register', data=dict(
         username="jason", emailaddr="jason@mail", password="test"))
     assert rv.status_code == 302
@@ -67,8 +66,11 @@ def test_login(client):
 
     rv = client.get('/')
     assert rv.status_code == 200
-    assert b'hello, jason' in rv.data
+    assert b'hello, jason. your favorite os is None' in rv.data
 
-    rv = client.post('/update', data=dict(favos='linux'))
+    rv = client.post('/viauth/update', data=dict(favos='linux'))
     rv = client.get('/viauth/profile')
     assert b'linux' in rv.data
+
+    rv = client.get('/viauth/delete', follow_redirects=True)
+    assert b'an exception (ArbException) has occurred: user can&#39;t delete themselves' in rv.data

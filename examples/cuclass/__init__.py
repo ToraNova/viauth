@@ -6,6 +6,7 @@ EXPORT FLASK_APP = cuclass
 flask run
 '''
 from flask import Flask, render_template, redirect, url_for, request
+from viauth import ArbException
 from viauth.persistdb import Arch, AuthUser
 from flask_login import login_required, current_user
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
@@ -14,9 +15,24 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime
 class ExtendedAuthUser(AuthUser):
     favorite_os = Column(String(), unique=False, nullable=True)
 
+    # this is called when a new class ExtendedAuthUser is created
+    # may raise an exception to stop the process
     def __init__(self, reqform):
         super().__init__(reqform)
         self.favorite_os = reqform.get("favos")
+
+    # this is called when the user updates their own profiles. may raise an exception to stop the process
+    def self_update(self, reqform):
+        #super().update(reqform) # may call this optionally if wanna use AuthUser's original update method
+        self.favorite_os = reqform.get("favos")
+
+    # this is called if an admin updates the user's profiles. may also raise exception to stop the process
+    def admin_update(self, reqform):
+        pass
+
+    # this is called before deletion. MAY raise an exception to stop deletion
+    def delete(self):
+        raise ArbException("user can't delete themselves") # this is arbitrary.
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -39,7 +55,7 @@ def create_app(test_config=None):
             'login':'login.html',
             'register':'signup.html',
             'profile':'profile.html',
-            'update': 'edit.html'
+            'update': 'favos_edit.html'
             },
         reroutes = {
             'login':'protected',
@@ -57,19 +73,4 @@ def create_app(test_config=None):
     def protected():
         return render_template('favos.html')
 
-    @app.route('/update', methods=['GET','POST'])
-    @login_required
-    def update():
-        if request.method == 'POST':
-            favos = request.form.get('favos')
-            tar = ExtendedAuthUser.query.filter(ExtendedAuthUser.id == current_user.id).first()
-            tar.favorite_os = favos
-            try:
-                arch.session.add(tar)
-                arch.session.commit()
-                return redirect(url_for('protected'))
-            except Exception as e:
-                arch.session.rollback()
-                return e
-        return render_template('favos_edit.html')
     return app
