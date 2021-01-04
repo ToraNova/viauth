@@ -39,8 +39,8 @@ class AuthUser(basic.AuthUser, sqlorm.ViAuthBase, sqlorm.Base):
 
     # user self update (beware, no privilege or role changing here)
     def self_update(self, reqform):
-        self.emailaddr = reqform.get("emailaddr")
         self.updated_on = datetime.datetime.now()
+        self.emailaddr = reqform.get("emailaddr")
 
 '''
 persistdb.Arch
@@ -48,7 +48,7 @@ templates: login, profile, unauth, (register, update)
 reroutes: login, logout, (register, update)
 '''
 class Arch(basic.Arch):
-    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser):
+    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, route_disabled = []):
         assert issubclass(authuser_class, AuthUser)
         super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
         self.__default_tp('register', 'register.html')
@@ -56,6 +56,7 @@ class Arch(basic.Arch):
         self.__default_rt('register', 'viauth.login') # go to login after registration
         self.__default_rt('update', 'viauth.profile') # go to profile after profile update
         self.__auclass = authuser_class
+        self.__rdisable = route_disabled
         self.session = sqlorm.connect(dburi)
 
     def init_app(self, app):
@@ -154,40 +155,45 @@ class Arch(basic.Arch):
     def __make_bp(self):
         bp = source.make_blueprint(self.__urlprefix)
 
+        # register self
+        if 'register' not in self.__rdisable:
+            @bp.route('/register', methods=['GET','POST'])
+            def register():
+                if self.__register():
+                    return self.__reroute('register')
+                form = self.__auclass.formgen_assist(self.session)
+                return render_template(self.__templ['register'], form = form)
+
+        # update self
+        if 'update' not in self.__rdisable:
+            @bp.route('/update', methods=['GET','POST'])
+            @login_required
+            def update():
+                if self.__update():
+                    return self.__reroute('update')
+                form = self.__auclass.formgen_assist(self.session)
+                return render_template(self.__templ['update'], form = form)
+
+        if 'delete' not in self.__rdisable:
+            @bp.route('/delete')
+            @login_required
+            def delete():
+                if self.__delete():
+                    return redirect(url_for('viauth.logout'))
+                return redirect(url_for('viauth.profile'))
+
+        if 'profile' not in self.__rdisable:
+            @bp.route('/profile')
+            @login_required
+            def profile():
+                return render_template(self.__templ['profile'])
+
+        # the login route cannot be disabled
         @bp.route('/login', methods=['GET','POST'])
         def login():
             if self.__login():
                 return self.__reroute('login')
             return render_template(self.__templ['login'])
-
-        # register self
-        @bp.route('/register', methods=['GET','POST'])
-        def register():
-            if self.__register():
-                return self.__reroute('register')
-            form = self.__auclass.formgen_assist(self.session)
-            return render_template(self.__templ['register'], form = form)
-
-        # update self
-        @bp.route('/update', methods=['GET','POST'])
-        @login_required
-        def update():
-            if self.__update():
-                return self.__reroute('update')
-            form = self.__auclass.formgen_assist(self.session)
-            return render_template(self.__templ['update'], form = form)
-
-        @bp.route('/delete')
-        @login_required
-        def delete():
-            if self.__delete():
-                return redirect(url_for('viauth.logout'))
-            return redirect(url_for('viauth.profile'))
-
-        @bp.route('/profile')
-        @login_required
-        def profile():
-            return render_template(self.__templ['profile'])
 
         @bp.route('/logout')
         def logout():

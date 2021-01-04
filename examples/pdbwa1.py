@@ -58,7 +58,7 @@ def test_run(client):
 
     # self elevation test
     rv = client.post('/viauth/update', data=dict( emailaddr="jason@mail", is_admin = "on"), follow_redirects=True)
-    assert rv.status_code == 200
+    assert rv.status_code == 404
 
     rv = client.get('/admin_secret')
     assert rv.status_code == 403

@@ -40,19 +40,18 @@ def create_app(test_config=None):
             'login':'login.html',
             'register':'signup.html',
             'profile':'profile.html',
-            'update': 'edit.html',
             'users': 'ulist.html',
             'update_other': 'admin_edit.html'
         },
         reroutes = {
             'logout':'viauth.login',
             'register':'viauth.login',
-            'update': 'viauth.profile',
             'update_other': 'viauth.users',
             'delete_other': 'viauth.users',
             'register_other': 'viauth.users'
         },
-        reroutes_kwarg = {'login': {'test':'1'}}
+        reroutes_kwarg = {'login': {'test':'1'}},
+        route_disabled = ['update']
     )
 
     arch.init_app(app)

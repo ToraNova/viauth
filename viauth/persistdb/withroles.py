@@ -50,10 +50,10 @@ templates: login, profile, unauth, register, update, users, register_other, upda
 reroutes: login, logout, register, update, register_other, update_other, delete_other, (insert_role, update_role, delete_role)
 '''
 class Arch(withadmin.Arch):
-    def __init__(self, dburi, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole):
+    def __init__(self, dburi, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, route_disabled = []):
         assert issubclass(authuser_class, AuthUser)
         assert issubclass(authrole_class, AuthRole)
-        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class)
+        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, route_disabled)
         self.__arclass = AuthRole
         self.__default_tp('roles', 'roles.html')
         self.__default_tp('insert_role', 'insert_role.html')
@@ -130,51 +130,59 @@ class Arch(withadmin.Arch):
         bp = super(withadmin.Arch, self).__make_bp() #calling grandparent function
 
         # this is defined in persistdb/withadmin.py
-        @bp.route('/register_other')
-        @userpriv.role_required(self.__accesspriv['register_other'])
-        def register_other():
-            return super().__register_other()
+        if 'register_other' not in self.__rdisable:
+            @bp.route('/register_other')
+            @userpriv.role_required(self.__accesspriv['register_other'])
+            def register_other():
+                return self.__return_register_other()
 
         # this is defined in persistdb/withadmin.py
-        @bp.route('/users')
-        @userpriv.role_required(self.__accesspriv['users'])
-        def users():
-            return super().__users()
+        if 'users' not in self.__rdisable:
+            @bp.route('/users')
+            @userpriv.role_required(self.__accesspriv['users'])
+            def users():
+                return self.__return_users()
 
         # this is defined in persistdb/withadmin.py
-        @bp.route('/update/<uid>', methods=['GET','POST'])
-        @userpriv.role_required(self.__accesspriv['update_other'])
-        def update_other(uid):
-            return super().__update_other(uid)
+        if 'update_other' not in self.__rdisable:
+            @bp.route('/update/<uid>', methods=['GET','POST'])
+            @userpriv.role_required(self.__accesspriv['update_other'])
+            def update_other(uid):
+                return self.__return_update_other(uid)
 
         # this is defined in persistdb/withadmin.py
-        @bp.route('/delete_other/<uid>')
-        @userpriv.role_required(self.__accesspriv['delete_other'])
-        def delete_other(uid):
-            return super().__delete_other(uid)
+        if 'delete_other' not in self.__rdisable:
+            @bp.route('/delete_other/<uid>')
+            @userpriv.role_required(self.__accesspriv['delete_other'])
+            def delete_other(uid):
+                return self.__return_delete_other(uid)
 
-        @bp.route('/roles')
-        @userpriv.role_required(self.__accesspriv['roles'])
-        def roles():
-            rlist = self.__arclass.query.all()
-            return render_template(self.__templ['roles'], data = rlist)
+        if 'roles' not in self.__rdisable:
+            @bp.route('/roles')
+            @userpriv.role_required(self.__accesspriv['roles'])
+            def roles():
+                rlist = self.__arclass.query.all()
+                return render_template(self.__templ['roles'], data = rlist)
 
-        @bp.route('/insert_role', methods=['GET','POST'])
-        @userpriv.role_required(self.__accesspriv['insert_role'])
-        def insert_role():
-            if self.__insert_role():
-                return self.__reroute('insert_role')
-            return render_template(self.__templ['insert_role'])
+        if 'insert_role' not in self.__rdisable:
+            @bp.route('/insert_role', methods=['GET','POST'])
+            @userpriv.role_required(self.__accesspriv['insert_role'])
+            def insert_role():
+                if self.__insert_role():
+                    return self.__reroute('insert_role')
+                return render_template(self.__templ['insert_role'])
 
-        @bp.route('/update_role/<rid>', methods=['GET','POST'])
-        def update_role(rid):
-            if self.__update_role(rid):
-                return self.__reroute('update_role')
-            return render_template(self.__templ['update_role'])
+        if 'update_role' not in self.__rdisable:
+            @bp.route('/update_role/<rid>', methods=['GET','POST'])
+            def update_role(rid):
+                if self.__update_role(rid):
+                    return self.__reroute('update_role')
+                return render_template(self.__templ['update_role'])
 
-        @bp.route('/delete_role/<rid>')
-        def delete_role(rid):
-            self.__delete_role(rid)
-            self.__reroute('delete_role')
+        if 'delete_role' not in self.__rdisable:
+            @bp.route('/delete_role/<rid>')
+            def delete_role(rid):
+                self.__delete_role(rid)
+                self.__reroute('delete_role')
 
         return bp

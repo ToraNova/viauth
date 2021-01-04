@@ -26,18 +26,14 @@ templates: login, profile, unauth, register, update, (users, update_other)
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
 class Arch(persistdb.Arch):
-    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser):
+    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, route_disabled = []):
         assert issubclass(authuser_class, AuthUser)
-        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class)
+        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, route_disabled)
         self.__default_tp('users', 'users.html')
         self.__default_tp('update_other', 'update_other.html')
         self.__default_rt('delete_other', 'viauth.users') # go to userlist after delete
         self.__default_rt('update_other', 'viauth.users') # go to userlist after update
         self.__default_rt('register_other', 'viauth.users') # go to userlist after update
-
-    def __users(self):
-        ulist = self.__auclass.query.all()
-        return render_template(self.__templ['users'], data = ulist)
 
     def __update_other(self, uid):
         u = self.__auclass.query.filter(self.__auclass.id == uid).first()
@@ -73,36 +69,53 @@ class Arch(persistdb.Arch):
             source.eflash(e)
         return False
 
+    def __return_users(self):
+        ulist = self.__auclass.query.all()
+        return render_template(self.__templ['users'], data = ulist)
+
+    def __return_register_other(self):
+        if self.__register():
+            return self.__reroute('register_other')
+        form = self.__auclass.formgen_assist(self.session)
+        # use the same form as 'register'
+        return render_template(self.__templ['register'], form = form)
+
+    def __return_update_other(self, uid):
+        if self.__update_other(uid):
+            return self.__reroute('update_other')
+        form = self.__auclass.formgen_assist(self.session)
+        return render_template(self.__templ['update_other'], data = u, form=form)
+
+    def __return_delete_other(self, uid):
+        self.__delete_other(uid)
+        return self.__reroute('delete_other')
+
     def __make_bp(self):
         bp = super().__make_bp()
 
-        @bp.route('/register_other')
-        @userpriv.admin_required
-        def register_other():
-            if self.__register():
-                return self.__reroute('register_other')
-            form = self.__auclass.formgen_assist(self.session)
-            # use the same form as 'register'
-            return render_template(self.__templ['register'], form = form)
+        if 'register_other' not in self.__rdisable:
+            @bp.route('/register_other')
+            @userpriv.admin_required
+            def register_other():
+                return self.__return_register_other()
 
-        @bp.route('/users')
-        @userpriv.admin_required
-        def users():
-            return self.__users()
+        if 'users' not in self.__rdisable:
+            @bp.route('/users')
+            @userpriv.admin_required
+            def users():
+                return self.__return_users()
 
         # update other user
-        @bp.route('/update/<uid>', methods=['GET','POST'])
-        @userpriv.admin_required
-        def update_other(uid):
-            if self.__update_other(uid):
-                return self.__reroute('update_other')
-            form = self.__auclass.formgen_assist(self.session)
-            return render_template(self.__templ['update_other'], data = u, form=form)
+        if 'update_other' not in self.__rdisable:
+            @bp.route('/update/<uid>', methods=['GET','POST'])
+            @userpriv.admin_required
+            def update_other(uid):
+                return self.__return_update_other(uid)
 
-        @bp.route('/delete/<uid>')
-        @userpriv.admin_required
-        def delete_other(uid):
-            self.__delete_other(uid)
-            return self.__reroute('delete_other')
+        if 'delete_other' not in self.__rdisable:
+            @bp.route('/delete/<uid>')
+            @userpriv.admin_required
+            def delete_other(uid):
+                return self.__return_delete_other(uid)
 
         return bp
