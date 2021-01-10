@@ -41,6 +41,7 @@ class AuthUser(withadmin.AuthUser):
         self.rid = None # user start with no role
 
     def admin_create(self, reqform):
+        super().admin_create(reqform)
         # user is being created by an admin
         # for instance, privilege elevation or role modificaion can occur here
         self.rid = reqform.get("rid")
@@ -56,10 +57,10 @@ templates: login, profile, unauth, register, update, users, register_other, upda
 reroutes: login, logout, register, update, register_other, update_other, delete_other, (insert_role, update_role, delete_role)
 '''
 class Arch(withadmin.Arch):
-    def __init__(self, dburi, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, route_disabled = []):
+    def __init__(self, dburi, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, routes_disabled = []):
         assert issubclass(authuser_class, AuthUser)
         assert issubclass(authrole_class, AuthRole)
-        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, route_disabled)
+        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
         self.__arclass = AuthRole
         self.__default_tp('roles', 'roles.html')
         self.__default_tp('insert_role', 'insert_role.html')

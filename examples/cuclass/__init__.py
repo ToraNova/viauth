@@ -22,6 +22,7 @@ class ExtendedAuthUser(AuthUser):
             raise ValueError('email cannot be empty')
         self.emailaddr = reqform.get("emailaddr")
 
+
     # login callback. this is called before a user is actually logged in
     def login(self):
         pass
@@ -38,16 +39,22 @@ class ExtendedAuthUser(AuthUser):
             raise ValueError('email cannot be empty')
         self.emailaddr = reqform.get("emailaddr")
 
-    # this is called if an admin updates the user's profiles.
-    # may also raise exception to stop the process
-    # requires viauth.persistdb.withadmin or viauth.persistb.withroles to have effect
-    def admin_update(self, reqform):
-        pass
-
     # this is called before user self deletion.
     # may raise an exception to stop deletion
     def delete(self):
         raise Exception("user can't delete themselves") # this is arbitrary.
+
+    # this is called if an admin creates the user's profiles.
+    def admin_create(self, reqform):
+        super().admin_create(reqform)
+        # do something
+
+    # this is called if an admin updates the user's profiles.
+    # may also raise exception to stop the process
+    # requires viauth.persistdb.withadmin or viauth.persistb.withroles to have effect
+    def admin_update(self, reqform):
+        super().admin_update(reqform)
+        # do something
 
     # this is called before admin deletes a user
     # may raise an exception to stop deletion

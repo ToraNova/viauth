@@ -39,7 +39,7 @@ def create_app(test_config=None):
             'delete_other': 'viauth.users',
             'register_other': 'viauth.users',
         },
-        route_disabled = ['delete']
+        routes_disabled = ['delete']
     )
 
     arch.init_app(app)

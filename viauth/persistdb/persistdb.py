@@ -50,7 +50,7 @@ templates: login, profile, unauth, (register, update)
 reroutes: login, logout, (register, update)
 '''
 class Arch(basic.Arch):
-    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, route_disabled = []):
+    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
         assert issubclass(authuser_class, AuthUser)
         super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
         self.__default_tp('register', 'register.html')
@@ -58,7 +58,7 @@ class Arch(basic.Arch):
         self.__default_rt('register', 'viauth.login') # go to login after registration
         self.__default_rt('update', 'viauth.profile') # go to profile after profile update
         self.__auclass = authuser_class
-        self.__rdisable = route_disabled
+        self.__rdisable = routes_disabled
         self.session = sqlorm.connect(dburi)
 
     def init_app(self, app):

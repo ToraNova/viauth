@@ -36,9 +36,9 @@ templates: login, profile, unauth, register, update, (users, register_other, upd
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
 class Arch(persistdb.Arch):
-    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, route_disabled = []):
+    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
         assert issubclass(authuser_class, AuthUser)
-        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, route_disabled)
+        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
         self.__default_tp('users', 'users.html')
         self.__default_tp('register_other', 'register_other.html')
         self.__default_tp('update_other', 'update_other.html')

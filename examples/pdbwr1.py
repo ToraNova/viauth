@@ -125,3 +125,10 @@ def test_run(client):
 
     rv = client.get('/elevate')
     assert rv.status_code == 403
+
+    rv = client.get('/pay')
+    assert rv.status_code == 200
+    assert b'premium account activated.'
+
+    rv = client.get('/elevate')
+    assert rv.status_code == 403
