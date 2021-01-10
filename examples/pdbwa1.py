@@ -25,62 +25,68 @@ def client(app):
     """A test client for the app."""
     return app.test_client()
 
-def login(client, username, password):
-    return client.post('/viauth/login', data=dict(
-        username=username,
-        password=password
-    ), follow_redirects=True)
-
-def logout(client):
-    return client.get('/viauth/logout', follow_redirects=True)
-
 def test_run(client):
 
-    rv = client.get('/set_admin')
+    rv = client.get('/elevate')
     assert b'login required.' in rv.data
 
-    rv = client.post('/viauth/register', data=dict( username="jason", emailaddr="jason@mail", password="test"))
-    rv = client.post('/viauth/register', data=dict( username="ting", emailaddr="ting@mail", password="test"))
-    assert rv.status_code == 302
-    assert b'/login' in rv.data
-
-    rv = login(client, 'jason', 'test')
+    rv = client.post('/viauth/register', data=dict( username="jason", password="test"), follow_redirects = True)
     assert rv.status_code == 200
+    rv = client.post('/viauth/register', data=dict( username="ting", password="test"), follow_redirects = True)
+    assert rv.status_code == 200
+
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test'), follow_redirects=True)
+    assert rv.status_code == 200
+
+    rv = client.get('/treasure')
+    assert rv.status_code == 403
+    assert b'you are an admin!' not in rv.data
 
     rv = client.get('/viauth/users')
     assert rv.status_code == 403
 
-    rv = client.get('/admin_secret')
+    rv = client.get('/viauth/sudo/delete/2')
     assert rv.status_code == 403
 
-    rv = client.get('/viauth/delete/2')
-    assert rv.status_code == 403
-
-    # self elevation test
-    rv = client.post('/viauth/update', data=dict( emailaddr="jason@mail", is_admin = "on"), follow_redirects=True)
+    rv = client.get('/viauth/delete')
     assert rv.status_code == 404
 
-    rv = client.get('/admin_secret')
-    assert rv.status_code == 403
-
-    rv = client.get('/set_admin')
+    # self elevation test
+    rv = client.post('/viauth/update', data=dict(is_admin="on"), follow_redirects=True)
     assert rv.status_code == 200
-    assert b'ok' in rv.data
+
+    rv = client.get('/treasure')
+    assert rv.status_code == 403
+    assert b'you are an admin!' not in rv.data
+
+    rv = client.get('/elevate')
+    assert rv.status_code == 200
+    assert b'elevated.' in rv.data
 
     rv = client.get('/viauth/users')
     assert rv.status_code == 200
-    assert b'jason' in rv.data and b'is admin? True' in rv.data
-    assert b'ting' in rv.data
+    assert b'jason. is admin? True' in rv.data
+    assert b'ting. is admin? False' in rv.data
 
-    rv = client.get('/admin_secret')
+    rv = client.get('/treasure')
     assert rv.status_code == 200
     assert b'you are an admin!' in rv.data
 
-    rv = client.get('/viauth/delete/2', follow_redirects=True)
+    rv = client.get('/viauth/sudo/delete/2', follow_redirects=True)
     assert rv.status_code == 200
-    assert b'ting@mail' not in rv.data
+    assert b'ting' not in rv.data
 
-    logout(client)
+    rv = client.post('/viauth/sudo/register', data=dict(username='ting', password='test', is_admin='on'), follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'user account created' in rv.data
+    assert b'ting. is admin? True' in rv.data
 
-    rv = client.get('/admin_secret')
+    rv = client.post('/viauth/sudo/update/2', data=dict(is_admin='off'), follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'ting. is admin? False' in rv.data
+
+    rv = client.get('/viauth/logout', follow_redirects=True)
+    assert rv.status_code == 200
+
+    rv = client.get('/treasure')
     assert rv.status_code == 401

@@ -40,10 +40,11 @@ def create_app(test_config=None):
     arch = Arch(
         app.config['DBURI'],
         templates = {
-            'register':'signup.html',
-            'update': 'edit.html',
-            'users': 'ulist.html',
-            'update_other': 'admin_edit.html'
+            'roles': 'roles.html',
+            'insert_role': 'new_role.html',
+            'update_role': 'edit_role.html',
+            'register_other': 'register.html',
+            'update_other': 'update.html',
         },
         reroutes = {
             'login': 'viauth.profile'
@@ -65,7 +66,7 @@ def create_app(test_config=None):
     @app.route('/content')
     @userpriv.role_required('premium')
     def content():
-        return 'you must pay good buck for this.'
+        return 'premium content.'
 
     @app.route('/nopay')
     @login_required
@@ -73,7 +74,15 @@ def create_app(test_config=None):
         current_user.rid = None
         arch.session.add(current_user)
         arch.session.commit()
-        return 'no premium for you'
+        return 'premium account deactivated.'
+
+    @app.route('/elevate')
+    @userpriv.level_atmost(3) # same as requiring premium user
+    def set_admin():
+        current_user.rid = 1
+        arch.session.add(current_user)
+        arch.session.commit()
+        return 'elevated.'
 
     @app.route('/pay')
     @login_required
@@ -84,6 +93,6 @@ def create_app(test_config=None):
         current_user.rid = pr.id
         arch.session.add(current_user)
         arch.session.commit()
-        return 'thanks'
+        return 'premium account activated.'
 
     return app

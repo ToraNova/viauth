@@ -25,22 +25,14 @@ def client(app):
     """A test client for the app."""
     return app.test_client()
 
-def login(client, username, password):
-    return client.post('/viauth/login', data=dict(
-        username=username,
-        password=password
-    ), follow_redirects=True)
-
-def logout(client):
-    return client.get('/viauth/logout', follow_redirects=True)
-
 #TODO: repeat registration test
 @pytest.mark.parametrize(
     ("username", "emailaddr", "password", "message"),
     (
         ("", "", "", b"invalid input length"),
         ("bob", "", "", b"invalid input length"),
-        ("bob", "", "test", b"successfully registered"),
+        ("bob", "", "test", b"email cannot be empty"),
+        ("bob", "bobmail", "test", b"successfully registered"),
     ),
 )
 def test_params(client, username, emailaddr, password, message):
@@ -51,26 +43,53 @@ def test_run(client):
     '''main test'''
 
     rv = client.get('/')
-    assert rv.status_code == 200 and b'login required.' in rv.data
+    assert rv.status_code == 302 #redirected
 
-    rv = login(client, "john", "test123")
-    assert b'invalid credentials' in rv.data
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test'), follow_redirects = True)
+    assert rv.status_code == 401
 
-    rv = client.post('/viauth/register', data=dict(
-        username="jason", emailaddr="jason@mail", password="test"))
-    assert rv.status_code == 302
-    assert b'/viauth/login' in rv.data
-
-    rv = login(client, "jason", "test")
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='tingmail'), follow_redirects = True)
     assert rv.status_code == 200
+    assert b'successfully registered' in rv.data
 
-    rv = client.get('/')
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='newmail'), follow_redirects = True)
+    assert rv.status_code == 409
+    assert b'registration unavailable' in rv.data
+
+    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='tingmail'), follow_redirects = True)
+    assert rv.status_code == 409
+    assert b'registration unavailable' in rv.data
+
+    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='newmail'), follow_redirects = True)
     assert rv.status_code == 200
-    assert b'hello, jason. your favorite os is None' in rv.data
+    assert b'successfully registered' in rv.data
 
-    rv = client.post('/viauth/update', data=dict(favos='linux'))
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test123'), follow_redirects = True)
+    assert rv.status_code == 200
+    assert b'hello, jason' in rv.data
+    assert b'login successful' in rv.data
+
     rv = client.get('/viauth/profile')
-    assert b'linux' in rv.data
+    assert b'newmail' in rv.data
+    lut = rv.data[rv.data.find(b'updated on: ')+12:]
+    lut = lut[: lut.find(b'</p>')]
 
-    rv = client.get('/viauth/delete', follow_redirects=True)
-    assert b'an exception (ArbException) has occurred: user can&#39;t delete themselves' in rv.data
+    rv = client.get('/viauth/update')
+    assert rv.status_code == 200
+
+    rv = client.post('/viauth/update', data={}, follow_redirects = True)
+    assert b'email cannot be empty' in rv.data
+
+    rv = client.post('/viauth/update', data=dict(emailaddr='new2mail'), follow_redirects = True)
+    assert rv.status_code == 200
+    nut = rv.data[rv.data.find(b'updated on: ')+12:]
+    nut = nut[: nut.find(b'</p>')]
+    assert lut != nut
+    assert b'new2mail' in rv.data
+
+    rv = client.get('/viauth/logout', follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'logout successful' in rv.data
+
+    rv = client.get('/viauth/logout')
+    assert rv.status_code == 302

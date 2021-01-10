@@ -5,7 +5,7 @@ running this example:
 EXPORT FLASK_APP = persistdb
 flask run
 '''
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, flash
 from viauth.persistdb import Arch, AuthUser
 from flask_login import login_required, current_user
 
@@ -24,49 +24,36 @@ def create_app(test_config=None):
         #print(e)
         pass
 
-    # define a place to find the templates
-    # set url_prefix = '/' to have no url_prefix, leaving it empty will prefix with viauth
     arch = Arch(
         app.config['DBURI'],
         templates = {
-            'login':'login.html',
             'register':'signup.html',
-            'profile':'profile.html',
-            'unauth':'nope.html'
+            'update':'edit.html',
             },
         reroutes= {
-            'login':'protected',
-            'logout':'viauth.login',
-            'register':'viauth.login'
+            'login':'home',
             },
-        url_prefix = '/'
     )
 
+    # example of setting a callback for 'exception' event
+    arch.set_callback('ex', lambda ex : flash(str(ex), 'err') )
     arch.init_app(app)
 
     @app.route('/')
+    def root():
+        return redirect(url_for('viauth.login'))
+
+    @app.route('/home')
     @login_required
-    def protected():
+    def home():
         return render_template('home.html')
 
     @app.route('/users')
     @login_required
-    def list():
+    def users():
         ulist = AuthUser.query.all()
-        return render_template('ulist.html', data=ulist)
+        return render_template('users.html', data=ulist)
 
-    # test case on how to commit/update
-    @app.route('/reset_emails')
-    def unset():
-        ulist = AuthUser.query.all()
-        try:
-            for u in ulist:
-                u.emailaddr = None
-                arch.session.add(u)
-            arch.session.commit()
-            return redirect(url_for('list'))
-        except Exception as e:
-            arch.session.rollback()
-            return e
+    # obtain session using arch.session
 
     return app

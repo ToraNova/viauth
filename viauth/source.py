@@ -13,15 +13,3 @@ def make_blueprint(prefix=None):
         return '%s %s: %s, written by toranova\n' % (vial.name, vial.version, vial.description)
 
     return bp
-
-def eflash(exception):
-    flash("an exception (%s) has occurred: %s" % (type(exception).__name__, str(exception)), 'err')
-
-def emflash(msg):
-    flash(msg, 'err')
-
-def sflash(msg):
-    flash(msg, 'ok')
-
-def wflash(msg):
-    flash(msg, 'warn')

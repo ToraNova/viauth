@@ -26,32 +26,20 @@ def create_app(test_config=None):
         #print(e)
         pass
 
-    # define a place to find the templates
-    # set url_prefix = '/' to have no url_prefix, leaving it empty will prefix with viauth
-    # the templates and reroutes may be left empty, in which case they will default
-    # if rerouting needs additiona kwarg, use reroutes_kwarg
-    #
-    # persistdb.Arch
-    # templates: login, (register, profile, users, update, update_other)
-    # reroutes: login, logout, unauth, (register, update)
     arch = Arch(
         app.config['DBURI'],
         templates = {
-            'login':'login.html',
-            'register':'signup.html',
-            'profile':'profile.html',
             'users': 'ulist.html',
-            'update_other': 'admin_edit.html'
+            'register_other': 'register.html',
+            'update_other': 'update.html',
         },
         reroutes = {
-            'logout':'viauth.login',
-            'register':'viauth.login',
+            'login': 'home',
             'update_other': 'viauth.users',
             'delete_other': 'viauth.users',
-            'register_other': 'viauth.users'
+            'register_other': 'viauth.users',
         },
-        reroutes_kwarg = {'login': {'test':'1'}},
-        route_disabled = ['update']
+        route_disabled = ['delete']
     )
 
     arch.init_app(app)
@@ -60,25 +48,22 @@ def create_app(test_config=None):
     def root():
         return redirect(url_for('viauth.login'))
 
-    # testing kwargs as well here
-    @app.route('/home/<test>')
-    @login_required
-    def home(test):
+    @app.route('/home')
+    def home():
         return render_template('home.html')
 
-    @app.route('/set_admin')
+    @app.route('/elevate')
     @login_required
     def set_admin():
         current_user.is_admin = True
         arch.session.add(current_user)
         arch.session.commit()
-        return 'ok'
+        return 'elevated.'
 
     # admin only
-    # to add the first admin, edit is_admin directly from database, or insert upon database creation
-    @app.route('/admin_secret')
+    @app.route('/treasure')
     @userpriv.admin_required
-    def admin_secret():
+    def treasure():
         return 'you are an admin!'
 
     return app

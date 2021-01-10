@@ -6,10 +6,10 @@ from examples import persistdb
 
 @pytest.fixture
 def app():
-    """Create and configure a new app instance for each test."""
+    '''Create and configure a new app instance for each test.'''
     db_fd, db_file = tempfile.mkstemp()
     db_uri = 'sqlite:///%s' % db_file
-    app = persistdb.create_app({"TESTING": True, "DBURI": db_uri})
+    app = persistdb.create_app({'TESTING': True, 'DBURI': db_uri})
 
     # create the database and load test data
     with app.app_context():
@@ -22,61 +22,96 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """A test client for the app."""
+    '''A test client for the app.'''
     return app.test_client()
 
-def login(client, username, password):
-    return client.post('/login', data=dict(
-        username=username,
-        password=password
-    ), follow_redirects=True)
-
-def logout(client):
-    return client.get('/logout', follow_redirects=True)
+@pytest.mark.parametrize(
+    ('username', 'password', 'message'),
+    (
+        ('ting', '', b'invalid input length'),
+        ('', 'hello', b'invalid input length'),
+        ('', '', b'invalid input length'),
+        ('ting', 'hello', b'successfully registered'),
+    ),
+)
+def test_params(client, username, password, message):
+    rv = client.post('/viauth/register', data=dict(username=username, password=password), follow_redirects = True)
+    assert rv.status_code == 200
+    assert message in rv.data
 
 def test_run(client):
-    '''test redirect on protected route'''
+
     rv = client.get('/')
-    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
+    assert rv.status_code == 302 #redirected
 
-    rv = login(client, "john", "test123")
-    assert b'invalid credentials' in rv.data
+    rv = client.get('/users')
+    assert rv.status_code == 401
+    assert b'login required.' in rv.data
 
-    rv = client.post('/register', data=dict(
-        username="jason", emailaddr="jason@mail", password="test"))
-    assert rv.status_code == 302
-    assert b'/login' in rv.data
-
-    rv = client.post('/register', data=dict(
-        username="jason", emailaddr="jason@mail", password="test"))
-    assert b'username/email-address is taken' in rv.data
-
-    rv = login(client, "jason", "test")
+    rv = client.get('/viauth/login')
     assert rv.status_code == 200
 
-    rv = client.get('/')
+    rv = client.get('/viauth/profile')
+    assert rv.status_code == 401
+
+    rv = client.get('/viauth/logout')
+    assert rv.status_code == 302
+
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test'), follow_redirects = True)
+    assert rv.status_code == 401
+
+    rv = client.get('/viauth/register')
+    assert rv.status_code == 200
+
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello'), follow_redirects = True)
+    assert rv.status_code == 200
+    assert b'successfully registered' in rv.data
+
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello'), follow_redirects = True)
+    assert rv.status_code == 409
+    assert b'registration unavailable' in rv.data
+
+    rv = client.post('/viauth/register', data=dict(username='jason', password='test123'), follow_redirects = True)
+    assert rv.status_code == 200
+    assert b'successfully registered' in rv.data
+
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test'), follow_redirects = True)
+    assert rv.status_code == 401
+
+    rv = client.post('/viauth/login', data=dict(username='jaso', password='test123'), follow_redirects = True)
+    assert rv.status_code == 401
+
+    rv = client.post('/viauth/login', data=dict(username='jason', password='test123'), follow_redirects = True)
     assert rv.status_code == 200
     assert b'hello, jason' in rv.data
+    assert b'login successful' in rv.data
 
-    rv = client.get('/profile')
-    assert b'jason@mail' in rv.data
+    rv = client.get('/users')
+    assert rv.status_code == 200
+    assert b'jason' in rv.data and b'ting' in rv.data
 
-    rv = client.post('/update', data=dict(emailaddr='jason@newmail'))
-    rv = client.get('/profile')
-    assert b'jason@newmail' in rv.data
+    rv = client.get('/viauth/profile')
+    lut = rv.data[rv.data.find(b'updated on: ')+12:]
+    lut = lut[: lut.find(b'</p>')]
 
-    rv = logout(client)
-    rv = client.get('/')
-    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
-
-    rv = client.get('/profile')
-    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
-
-    rv = client.post('/update', data=dict(emailaddr='jason@nomail'))
-    assert b'<h1>Nope</h1>\n<a href="/login">back to login</a>' in rv.data
-
-    rv = login(client, "jason", "test")
+    rv = client.get('/viauth/update')
     assert rv.status_code == 200
 
-    rv = client.get('/profile')
-    assert b'jason@newmail' in rv.data
+    rv = client.post('/viauth/update', follow_redirects = True)
+    assert rv.status_code == 200
+    nut = rv.data[rv.data.find(b'updated on: ')+12:]
+    nut = nut[: nut.find(b'</p>')]
+    assert lut != nut
+
+    rv = client.get('/viauth/logout', follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'logout successful' in rv.data
+
+    rv = client.get('/viauth/update')
+    assert rv.status_code == 401
+
+    rv = client.post('/viauth/update')
+    assert rv.status_code == 401
+
+    rv = client.get('/viauth/profile')
+    assert rv.status_code == 401

@@ -49,6 +49,30 @@ class Arch:
         self.__default_rt('logout','viauth.login')
         self.__urlprefix = url_prefix
         self.__userdict = {}
+        self.__callbacks = {
+                'err': lambda msg : flash(msg, 'err'),
+                'ok': lambda msg : flash(msg, 'ok'),
+                'warn': lambda msg : flash(msg, 'warn'),
+                'ex': lambda ex : flash("an exception (%s) has occurred: %s" % (type(ex).__name__, str(ex)), 'err'),
+        }
+
+    def set_callback(self, event, cbfunc):
+        if not callable(cbfunc):
+            raise TypeError("callback function should be callable")
+        self.__callbacks[event] = cbfunc
+
+    def callback(self, event, *args):
+        return self.__callbacks[event](*args)
+
+    # convenience functions
+    def error(self, msg):
+        self.callback('err', msg)
+
+    def ok(self, msg):
+        self.callback('ok', msg)
+
+    def ex(self, e):
+        self.callback('ex', e)
 
     def update_users(self, ulist):
         '''
@@ -92,9 +116,9 @@ class Arch:
     def __unauth(self):
         try:
             tpl = render_template(self.__templ['unauth'])
-            return tpl
+            return tpl, 401
         except TemplateNotFound:
-            return 'login required.'
+            return 'login required. please login at %s' % url_for('viauth.login', _external=True), 401
 
     def generate(self):
         bp = self.__make_bp()
@@ -121,6 +145,7 @@ class Arch:
 
         @bp.route('/login', methods=['GET','POST'])
         def login():
+            rscode = 200
             if request.method == 'POST':
                 username = request.form.get('username')
                 password = request.form.get('password')
@@ -130,8 +155,9 @@ class Arch:
                     self.__userdict[username].check_password(password):
                     login_user(self.__userdict[username])
                     return self.__reroute('login')
-                source.emflash('invalid credentials')
-            return render_template(self.__templ['login'])
+                self.error('invalid credentials')
+                rscode = 401
+            return render_template(self.__templ['login']), rscode
 
         @bp.route('/profile')
         @login_required

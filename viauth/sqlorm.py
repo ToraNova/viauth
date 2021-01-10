@@ -46,22 +46,10 @@ def connect(dburi):
 
 class ViAuthBase:
 
-    def delete(self):
-        pass
-
-    def getform_tf(self, reqform, value):
-        formval = reqform.get(value)
-        if formval is None:
-            return False
-        if type(formval) is bool:
-            return formval
-        formval = formval.lower()
-        return formval == "on" or formval == "1" or formval == "yes" or formval == "true" or formval == "t"
-
-    def formgen_assist(session):
+    def _formgen_assist(session):
         return None
 
-    def select_assist(self):
+    def _select_assist(self):
         return None
 
     # create table if not exist on dburi

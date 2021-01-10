@@ -19,15 +19,7 @@ class AuthUser(basic.AuthUser, sqlorm.ViAuthBase, sqlorm.Base):
     is_active = Column(Boolean(),nullable=False) #used to disable accounts
     created_on = Column(DateTime()) #date of user account creation
     updated_on = Column(DateTime()) #updated time
-    emailaddr = Column(String(254),unique=True,nullable=True)
     is_authenticated = False # default is false, unless the app sets to true
-
-    def elevation_policy_check(self, orig):
-        if not self.is_active == orig.is_active:
-            # self activation/deactivation not permitted
-            source.emflash("self activation/deactivation not permitted")
-            return False
-        return True
 
     def __init__(self, reqform):
         if len(reqform["username"]) < 1 or len(reqform["password"]) < 1:
@@ -35,12 +27,22 @@ class AuthUser(basic.AuthUser, sqlorm.ViAuthBase, sqlorm.Base):
         super().__init__(reqform["username"], reqform["password"])
         self.created_on = datetime.datetime.now()
         self.updated_on = self.created_on
-        self.emailaddr = reqform.get("emailaddr")
 
-    # user self update (beware, no privilege or role changing here)
-    def self_update(self, reqform):
+    # login callback
+    def login(self):
+        pass
+
+    # logout callback
+    def logout(self):
+        pass
+
+    # user self update
+    def update(self, reqform):
         self.updated_on = datetime.datetime.now()
-        self.emailaddr = reqform.get("emailaddr")
+
+    # user self delete callback
+    def delete(self):
+        pass
 
 '''
 persistdb.Arch
@@ -78,6 +80,7 @@ class Arch(basic.Arch):
         return source.AppArch(bp, lman)
 
     def __login(self):
+        rscode = 200
         if request.method == 'POST':
             username = request.form.get('username')
             password = request.form.get('password')
@@ -85,55 +88,80 @@ class Arch(basic.Arch):
                 abort(400)
             u = self.__auclass.query.filter(self.__auclass.name == username).first()
             if u and u.check_password(password):
-                login_user(u)
-                return True
-            source.emflash('invalid credentials')
-        return False
+                try:
+                    u.login() # runs the login callback
+                    self.session.add(u)
+                    self.session.commit()
+                    login_user(u) # flask-login do the rest
+                    self.ok('login successful')
+                    return True, None
+                except Exception as e:
+                    self.ex(e)
+                self.session.rollback()
+            else:
+                self.error('invalid credentials')
+                rscode = 401
+        return False, rscode
+
+    def __logout(self):
+        try:
+            current_user.logout() # runs the logout callback
+            self.session.add(current_user)
+            self.session.commit()
+            logout_user()
+            self.ok('logout successful')
+            return True # success
+        except Exception as e:
+            self.ex(e)
+        self.session.rollback()
+        return False # fail
 
     def __register(self):
+        rscode = 200
         if request.method == 'POST':
             try:
-                u = self.__auclass(request.form)
+                u = self.__auclass(request.form) # create the user
                 self.session.add(u)
                 self.session.commit()
-                source.sflash('successfully registered')
-                return True
+                self.ok('successfully registered')
+                return True, None # success
             except IntegrityError as e:
-                self.session.rollback()
-                source.emflash('username/email-address is taken')
+                self.error('registration unavailable')
+                rscode = 409
             except Exception as e:
-                self.session.rollback()
-                source.eflash(e)
-        return False
+                self.ex(e)
+
+            self.session.rollback()
+        return False, rscode # fail
 
     def __update(self):
+        rscode = 200
         if request.method == 'POST':
             try:
-                orig = self.__auclass.query.filter(self.__auclass.id == current_user.id).first()
-                current_user.self_update(request.form)
+                current_user.update(request.form) # runs the update callback
                 self.session.add(current_user)
                 self.session.commit()
-                source.emflash('user profile updated')
-                return True
+                self.ok('user profile updated')
+                return True, None # success
             except IntegrityError as e:
-                self.session.rollback()
-                source.emflash('integrity error')
+                self.error('integrity error')
+                rscode = 409
             except Exception as e:
-                self.session.rollback()
-                source.eflash(e)
-        return False
+                self.ex(e)
+            self.session.rollback()
+        return False, rscode # fail
 
     def __delete(self):
         try:
-            current_user.delete()
+            current_user.delete() # runs the delete callback
             self.session.delete(current_user)
             self.session.commit()
-            source.emflash('account deleted')
-            return True
+            self.ok('account deleted')
+            return True # success
         except Exception as e:
-            self.session.rollback()
-            source.eflash(e)
-        return False
+            self.ex(e)
+        self.session.rollback()
+        return False # fail
 
     def __make_lman(self):
         lman = LoginManager()
@@ -159,20 +187,22 @@ class Arch(basic.Arch):
         if 'register' not in self.__rdisable:
             @bp.route('/register', methods=['GET','POST'])
             def register():
-                if self.__register():
+                rbool, rscode = self.__register()
+                if rbool:
                     return self.__reroute('register')
-                form = self.__auclass.formgen_assist(self.session)
-                return render_template(self.__templ['register'], form = form)
+                form = self.__auclass._formgen_assist(self.session)
+                return render_template(self.__templ['register'], form = form), rscode
 
         # update self
         if 'update' not in self.__rdisable:
             @bp.route('/update', methods=['GET','POST'])
             @login_required
             def update():
-                if self.__update():
+                rbool, rscode = self.__update()
+                if rbool:
                     return self.__reroute('update')
-                form = self.__auclass.formgen_assist(self.session)
-                return render_template(self.__templ['update'], form = form)
+                form = self.__auclass._formgen_assist(self.session)
+                return render_template(self.__templ['update'], form = form), rscode
 
         if 'delete' not in self.__rdisable:
             @bp.route('/delete')
@@ -191,13 +221,15 @@ class Arch(basic.Arch):
         # the login route cannot be disabled
         @bp.route('/login', methods=['GET','POST'])
         def login():
-            if self.__login():
+            rbool, rscode = self.__login()
+            if rbool:
                 return self.__reroute('login')
-            return render_template(self.__templ['login'])
+            return render_template(self.__templ['login']), rscode
 
         @bp.route('/logout')
         def logout():
-            logout_user()
-            return self.__reroute('logout')
+            if self.__logout():
+                return self.__reroute('logout')
+            return redirect(url_for('viauth.profile'))
 
         return bp

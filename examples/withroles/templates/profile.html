@@ -5,14 +5,20 @@
 
 {% block content %}
 <p>name: {{ current_user.name }}</p>
-<p>email: {{ current_user.emailaddr }}</p>
 <p>created on: {{ current_user.created_on }}</p>
-<p>is admin: {{ current_user.is_admin }}</p>
 <p>user role: {{ current_user.role.name }} </p>
 <p>prilevel: {{ current_user.role.level }} </p>
 
-<a href="{{ url_for('pay') }}">upgrade account</a>
-<a href="{{ url_for('unpay') }}">downgrade account</a>
-<a href="{{ url_for('content') }}">paid content</a>
-<a href="{{ url_for('viauth.update') }}">update profile</a>
+<ul>
+	<li><a href="{{ url_for('pay') }}">upgrade account</a>
+	<li><a href="{{ url_for('unpay') }}">downgrade account</a>
+	<li><a href="{{ url_for('content') }}">paid content</a>
+	<li><a href="{{ url_for('viauth.update') }}">update profile</a>
+	<li><a href="{{ url_for('viauth.logout') }}">logout</a>
+</ul>
+<p>admin actions</p>
+<ul>
+	<li><a href="{{ url_for('viauth.users') }}">view users</a>
+	<li><a href="{{ url_for('viauth.roles') }}">view roles</a>
+</ul>
 {% endblock %}

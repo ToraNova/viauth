@@ -6,6 +6,7 @@ tests=(\
 	examples/pdb1.py\
 	examples/cu1.py\
 	examples/pdbwa1.py\
+	examples/pdbwr1.py\
 );
 for t in ${tests[@]}; do
 	pytest $t -s;

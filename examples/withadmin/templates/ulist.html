@@ -4,8 +4,9 @@
 {% block header %}{% endblock %}
 
 {% block content %}
+<a href="{{ url_for('viauth.register_other') }}">create user account</a>
 {% for u in data %}
-<p>{{u.name}}, {{u.created_on}}. is admin? {{ u.is_admin }}</p>
+<p>{{u.name}}. is admin? {{ u.is_admin }}</p>
 <a href="{{ url_for('viauth.update_other', uid=u.id) }}">update</a>
 <a href="{{ url_for('viauth.delete_other', uid=u.id) }}">delete</a>
 {% endfor %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+	<form method="post">
+		<label>role name</label></br>
+		<input name="name" value="{{ data.name }}" required></br>
+		<label>privilege level</label></br>
+		<input name="level" type="number" value="{{ data.level }}" required></br>
+		<button type="submit">create</button>
+	</form>
+{% endblock %}

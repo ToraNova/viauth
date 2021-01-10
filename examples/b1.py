@@ -18,33 +18,40 @@ def client(app):
     """A test client for the app."""
     return app.test_client()
 
-def login(client, username, password):
-    return client.post('/basic_example/login', data=dict(
-        username=username,
-        password=password
-    ), follow_redirects=True)
-
-def logout(client):
-    return client.get('/basic_example/logout', follow_redirects=True)
-
 def test_run(client):
     '''main test'''
 
     rv = client.get('/')
-    assert b'login required.' in rv.data
+    assert rv.status_code == 302 #redirected
 
-    rv = login(client, "john", "test123")
-    assert b'hello john, you are authenticated' in rv.data
+    rv = client.get('/treasure')
+    assert rv.status_code == 401
+    assert b'<h1>not logged in</h1>' in rv.data
 
-    rv = logout(client)
-    assert b'<input name="username" required>' in rv.data
-    assert b'<input name="password" type="password" required>' in rv.data
+    rv = client.get('/basic/login')
+    assert rv.status_code == 200
 
-    rv = login(client, "john", "test1234")
-    assert b'invalid credentials' in rv.data
+    rv = client.get('/basic/profile')
+    assert rv.status_code == 401
 
-    rv = login(client, "alice", "hello")
-    assert b'invalid credentials' in rv.data
+    rv = client.get('/basic/logout')
+    assert rv.status_code == 302
 
-    rv = login(client, "alice", None)
-    assert rv.status_code == 400
+    rv = client.post('/basic/login', data=dict(username='jason', password='test'), follow_redirects = True)
+    assert rv.status_code == 401
+
+    rv = client.post('/basic/login', data=dict(username='ting', password='hello'), follow_redirects = True)
+    assert rv.status_code == 200
+    assert b'hello ting' in rv.data
+
+    rv = client.get('/treasure')
+    assert rv.status_code == 200
+    assert b'you got the treasure' in rv.data
+
+    rv = client.get('/basic/logout', follow_redirects = True)
+    assert rv.status_code == 200
+    assert b'test with kwarg 123' in rv.data
+
+    rv = client.get('/treasure')
+    assert rv.status_code == 401
+    assert b'<h1>not logged in</h1>' in rv.data

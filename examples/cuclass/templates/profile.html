@@ -5,9 +5,10 @@
 
 {% block content %}
 <p>name: {{ current_user.name }}</p>
-<p>email: {{ current_user.emailaddr }}</p>
-<p>favourite os: {{ current_user.favorite_os }}</p>
+<p>email: {{current_user.emailaddr }}</p>
 <p>created on: {{ current_user.created_on }}</p>
+<p>updated on: {{ current_user.updated_on }}</p>
 
 <a href="{{ url_for('viauth.update') }}">update profile</a>
+<a href="{{ url_for('home') }}">back to home</a>
 {% endblock %}

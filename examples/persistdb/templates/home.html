@@ -7,6 +7,7 @@
 <p>hello, {{ current_user.name }}</p>
 <a href="{{ url_for('viauth.profile') }}">profile</a>
 <a href="{{ url_for('viauth.logout') }}">logout</a>
+<a href="{{ url_for('users') }}">view users</a>
 </br>
 <a href="{{ url_for('viauth.delete') }}">delete account</a>
 {% endblock %}
