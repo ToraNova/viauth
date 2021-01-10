@@ -114,5 +114,14 @@ def test_run(client):
 
     rv = client.post('/viauth/sudo/register', data=dict(username='ting2', password='test', rid=2), follow_redirects=True)
     assert rv.status_code == 200
-    print( rv.data)
     assert b'ting2, peasant' in rv.data
+
+    rv = client.get('/viauth/logout', follow_redirects = True)
+    assert rv.status_code == 200
+
+    rv = client.post('/viauth/login', data=dict(username='ting2', password='test'), follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'peasant' in rv.data
+
+    rv = client.get('/elevate')
+    assert rv.status_code == 403
