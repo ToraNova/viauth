@@ -33,15 +33,9 @@ def make_session(engine):
     Base.query = sess.query_property()
     return sess
 
-def make_engine(dburi):
-    '''create an engine based on an uri
-    if the engine does not persist and a new one will be created sooner, call the
-    Engine.dispose() method'''
-    return create_engine(dburi)
-
 def connect(dburi):
     '''easy function to connect to a database, returns a session'''
-    engine = make_engine(dburi)
+    engine = create_engine(dburi)
     return make_session(engine)
 
 class ViAuthBase:
@@ -55,14 +49,14 @@ class ViAuthBase:
     # create table if not exist on dburi
     @classmethod
     def create_table(cls, dburi):
-        engine = make_engine(dburi)
+        engine = create_engine(dburi)
         cls.__table__.create(engine, checkfirst=True)
         engine.dispose() #house keeping
 
     # check if table exists in dburi
     @classmethod
     def table_exists(cls, dburi):
-        engine = make_engine(dburi)
+        engine = create_engine(dburi)
         ins = inspect(engine)
         res = cls.__tablename__ in ins.get_table_names()
         engine.dispose()
