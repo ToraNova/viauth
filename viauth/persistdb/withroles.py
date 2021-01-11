@@ -61,7 +61,7 @@ class Arch(withadmin.Arch):
         assert issubclass(authuser_class, AuthUser)
         assert issubclass(authrole_class, AuthRole)
         super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
-        self.__arclass = AuthRole
+        self.__arclass = authrole_class
         self.__default_tp('roles', 'roles.html')
         self.__default_tp('insert_role', 'insert_role.html')
         self.__default_tp('update_role', 'update_role.html')
