@@ -8,17 +8,36 @@ from flask_login import login_user, LoginManager, current_user, logout_user, log
 from viauth import source, basic, sqlorm, userpriv
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.declarative import declared_attr
 
-class AuthUser(basic.AuthUser, sqlorm.ViAuthBase, sqlorm.Base):
+class AuthUserMixin(basic.AuthUser, sqlorm.ViAuthBase):
     '''A basic user authentication account following flask-login
     extended with sqlalchemy ORM object classes'''
-    __tablename__ = "authuser"
-    id = Column(Integer, primary_key = True)
-    name = Column(String(50),unique=True,nullable=False)
-    passhash = Column(String(160),unique=False,nullable=False)
-    is_active = Column(Boolean(),nullable=False) #used to disable accounts
-    created_on = Column(DateTime()) #date of user account creation
-    updated_on = Column(DateTime()) #updated time
+
+    @declared_attr
+    def id(cls):
+        return Column(Integer, primary_key = True)
+
+    @declared_attr
+    def name(cls):
+        return Column(String(50),unique=True,nullable=False)
+
+    @declared_attr
+    def passhash(cls):
+        return Column(String(160),unique=False,nullable=False)
+
+    @declared_attr
+    def is_active(cls):
+        return Column(Boolean(),nullable=False) #used to disable accounts
+
+    @declared_attr
+    def created_on(cls):
+        return Column(DateTime()) #date of user account creation
+
+    @declared_attr
+    def updated_on(cls):
+        return Column(DateTime()) #updated time
+
     is_authenticated = False # default is false, unless the app sets to true
 
     def __init__(self, reqform):
@@ -44,22 +63,31 @@ class AuthUser(basic.AuthUser, sqlorm.ViAuthBase, sqlorm.Base):
     def delete(self):
         pass
 
+class AuthUser(AuthUserMixin, sqlorm.Base):
+    __tablename__ = "authuser"
+    # This prevents errors,
+    # BUT DO NOT USE UNDER NORMAL CIRCUMSTANCES AS IT MAY INDICATE MULTIPLE DEFINITIONS
+    __table_args__ = {'extend_existing': True}
+
+    def __init__(self, reqform):
+        super().__init__(reqform)
+
 '''
 persistdb.Arch
 templates: login, profile, unauth, (register, update)
 reroutes: login, logout, (register, update)
 '''
 class Arch(basic.Arch):
-    def __init__(self, dburi, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
-        assert issubclass(authuser_class, AuthUser)
+    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
+        assert issubclass(authuser_class, AuthUserMixin)
         super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
-        self.__default_tp('register', 'register.html')
-        self.__default_tp('update', 'update.html')
-        self.__default_rt('register', 'viauth.login') # go to login after registration
-        self.__default_rt('update', 'viauth.profile') # go to profile after profile update
-        self.__auclass = authuser_class
-        self.__rdisable = routes_disabled
-        self.session = sqlorm.connect(dburi)
+        self._default_tp('register', 'register.html')
+        self._default_tp('update', 'update.html')
+        self._default_rt('register', 'viauth.login') # go to login after registration
+        self._default_rt('update', 'viauth.profile') # go to profile after profile update
+        self._auclass = authuser_class
+        self._rdisable = routes_disabled
+        self.session = sqlorm.connect(dburi, ormbase)
 
     def init_app(self, app):
         apparch = self.generate()
@@ -73,8 +101,8 @@ class Arch(basic.Arch):
 
     # override basic's generate with session check
     def generate(self):
-        bp = self.__make_bp()
-        lman = self.__make_lman()
+        bp = self._make_bp()
+        lman = self._make_lman()
         if(not hasattr(self, 'session')):
             raise AttributeError("sql session unconfigured.")
         return source.AppArch(bp, lman)
@@ -86,7 +114,7 @@ class Arch(basic.Arch):
             password = request.form.get('password')
             if not username or not password:
                 abort(400)
-            u = self.__auclass.query.filter(self.__auclass.name == username).first()
+            u = self._auclass.query.filter(self._auclass.name == username).first()
             if u and u.check_password(password):
                 try:
                     u.login() # runs the login callback
@@ -120,7 +148,7 @@ class Arch(basic.Arch):
         rscode = 200
         if request.method == 'POST':
             try:
-                u = self.__auclass(request.form) # create the user
+                u = self._auclass(request.form) # create the user
                 self.session.add(u)
                 self.session.commit()
                 self.ok('successfully registered')
@@ -163,12 +191,12 @@ class Arch(basic.Arch):
         self.session.rollback()
         return False # fail
 
-    def __make_lman(self):
+    def _make_lman(self):
         lman = LoginManager()
 
         @lman.user_loader
         def loader(uid):
-            u = self.__auclass.query.filter(self.__auclass.id == uid).first()
+            u = self._auclass.query.filter(self._auclass.id == uid).first()
             if u:
                 u.is_authenticated = True
                 return u
@@ -180,31 +208,31 @@ class Arch(basic.Arch):
 
         return lman
 
-    def __make_bp(self):
-        bp = source.make_blueprint(self.__urlprefix)
+    def _make_bp(self):
+        bp = source.make_blueprint(self._urlprefix)
 
         # register self
-        if 'register' not in self.__rdisable:
+        if 'register' not in self._rdisable:
             @bp.route('/register', methods=['GET','POST'])
             def register():
                 rbool, rscode = self.__register()
                 if rbool:
-                    return self.__reroute('register')
-                form = self.__auclass._formgen_assist(self.session)
-                return render_template(self.__templ['register'], form = form), rscode
+                    return self._reroute('register')
+                form = self._auclass._formgen_assist(self.session)
+                return render_template(self._templ['register'], form = form), rscode
 
         # update self
-        if 'update' not in self.__rdisable:
+        if 'update' not in self._rdisable:
             @bp.route('/update', methods=['GET','POST'])
             @login_required
             def update():
                 rbool, rscode = self.__update()
                 if rbool:
-                    return self.__reroute('update')
-                form = self.__auclass._formgen_assist(self.session)
-                return render_template(self.__templ['update'], form = form), rscode
+                    return self._reroute('update')
+                form = self._auclass._formgen_assist(self.session)
+                return render_template(self._templ['update'], form = form), rscode
 
-        if 'delete' not in self.__rdisable:
+        if 'delete' not in self._rdisable:
             @bp.route('/delete')
             @login_required
             def delete():
@@ -212,24 +240,24 @@ class Arch(basic.Arch):
                     return redirect(url_for('viauth.logout'))
                 return redirect(url_for('viauth.profile'))
 
-        if 'profile' not in self.__rdisable:
+        if 'profile' not in self._rdisable:
             @bp.route('/profile')
             @login_required
             def profile():
-                return render_template(self.__templ['profile'])
+                return render_template(self._templ['profile'])
 
         # the login route cannot be disabled
         @bp.route('/login', methods=['GET','POST'])
         def login():
             rbool, rscode = self.__login()
             if rbool:
-                return self.__reroute('login')
-            return render_template(self.__templ['login']), rscode
+                return self._reroute('login')
+            return render_template(self._templ['login']), rscode
 
         @bp.route('/logout')
         def logout():
             if self.__logout():
-                return self.__reroute('logout')
+                return self._reroute('logout')
             return redirect(url_for('viauth.profile'))
 
         return bp

@@ -19,6 +19,27 @@ def admin_required(fn):
     return decorated_view
 
 '''
+similar like admin_required, except the is_admin attribute is on the role of the user
+rather than the user itself
+'''
+def role_isadmin(name):
+    def outer_dec(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated:
+                # not logged in
+                abort(401)
+            if not hasattr(current_user, 'role') or not hasattr(current_user.role, 'is_admin'):
+                # no role
+                abort(403)
+            if not current_user.role.is_admin:
+                # not the role
+                abort(403)
+            return fn(*args, **kwargs)
+        return decorated_view
+    return outer_dec
+
+'''
 if using role-based access model, current_user.role.name must be exactly 'name'
 THIS IS CASE SENSITIVE!
 '''

@@ -6,12 +6,16 @@ EXPORT FLASK_APP = cuclass
 flask run
 '''
 from flask import Flask, render_template, redirect, url_for, request
-from viauth.persistdb import Arch, AuthUser
+from viauth.persistdb import Arch, AuthUserMixin
 from flask_login import login_required, current_user
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base() # declare own Base
 
 # TODO create your own user class and inherit from AuthUser
-class ExtendedAuthUser(AuthUser):
+class ExtendedAuthUser(AuthUserMixin, Base):
+    __tablename__ = "authuser"
     emailaddr = Column(String(254),unique=True,nullable=False)
 
     # this is called when a new class ExtendedAuthUser is created
@@ -79,6 +83,8 @@ def create_app(test_config=None):
     # set url_prefix = '/' to have no url_prefix, leaving it empty (None) will prefix with viauth
     arch = Arch(
         app.config['DBURI'],
+        # custom class is decoupled from viauth's sqlorm.Base, use your own declarative Base here
+        Base,
         templates = {
             'register':'signup.html',
             'update':'edit.html',

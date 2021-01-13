@@ -26,17 +26,16 @@ def make_dbstruct(dburi):
     base.query = session.query_property()
     return DBstruct(engine, metadata, session, base)
 
-def make_session(engine):
+def make_session(engine, base = Base):
     '''create a session and bind the Base query property to it'''
     sess =  scoped_session(sessionmaker(autocommit=False,autoflush=False,bind=engine))
-    global Base
-    Base.query = sess.query_property()
+    base.query = sess.query_property()
     return sess
 
-def connect(dburi):
+def connect(dburi, base = Base):
     '''easy function to connect to a database, returns a session'''
     engine = create_engine(dburi)
-    return make_session(engine)
+    return make_session(engine, base)
 
 class ViAuthBase:
 

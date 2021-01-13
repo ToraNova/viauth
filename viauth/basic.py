@@ -39,17 +39,18 @@ class Arch:
         templ is a dictionary that returns user specified templates to user on given routes
         reroutes is a dictionary that reroutes the user after certain actions on given routes
         '''
-        self.__templ = templates
-        self.__route = reroutes
-        self.__rkarg = reroutes_kwarg
-        self.__default_tp('login', 'login.html')
-        self.__default_tp('profile', 'profile.html')
-        self.__default_tp('unauth','unauth.html')
-        self.__default_rt('login', 'viauth.profile')
-        self.__default_rt('logout','viauth.login')
-        self.__urlprefix = url_prefix
-        self.__userdict = {}
-        self.__callbacks = {
+        self.__userdict = {} # only for basic
+        self._urlprefix = url_prefix # typically not required by child classes
+
+        self._templ = templates
+        self._route = reroutes
+        self._rkarg = reroutes_kwarg
+        self._default_tp('login', 'login.html')
+        self._default_tp('profile', 'profile.html')
+        self._default_tp('unauth','unauth.html')
+        self._default_rt('login', 'viauth.profile')
+        self._default_rt('logout','viauth.login')
+        self._callbacks = {
                 'err': lambda msg : flash(msg, 'err'),
                 'ok': lambda msg : flash(msg, 'ok'),
                 'warn': lambda msg : flash(msg, 'warn'),
@@ -59,10 +60,10 @@ class Arch:
     def set_callback(self, event, cbfunc):
         if not callable(cbfunc):
             raise TypeError("callback function should be callable")
-        self.__callbacks[event] = cbfunc
+        self._callbacks[event] = cbfunc
 
     def callback(self, event, *args):
-        return self.__callbacks[event](*args)
+        return self._callbacks[event](*args)
 
     # convenience functions
     def error(self, msg):
@@ -99,33 +100,33 @@ class Arch:
 
         return app
 
-    def __reroute(self, fromkey):
-        if self.__rkarg.get(fromkey):
-            return redirect(url_for(self.__route[fromkey], **self.__rkarg.get(fromkey)))
+    def _reroute(self, fromkey):
+        if self._rkarg.get(fromkey):
+            return redirect(url_for(self._route[fromkey], **self._rkarg.get(fromkey)))
         else:
-            return redirect(url_for(self.__route[fromkey]))
+            return redirect(url_for(self._route[fromkey]))
 
-    def __default_tp(self, key, value):
-        if not self.__templ.get(key):
-            self.__templ[key] = value
+    def _default_tp(self, key, value):
+        if not self._templ.get(key):
+            self._templ[key] = value
 
-    def __default_rt(self, key, value):
-        if not self.__route.get(key):
-            self.__route[key] = value
+    def _default_rt(self, key, value):
+        if not self._route.get(key):
+            self._route[key] = value
 
     def __unauth(self):
         try:
-            tpl = render_template(self.__templ['unauth'])
+            tpl = render_template(self._templ['unauth'])
             return tpl, 401
         except TemplateNotFound:
             return 'login required. please login at %s' % url_for('viauth.login', _external=True), 401
 
     def generate(self):
-        bp = self.__make_bp()
-        lman = self.__make_lman()
+        bp = self._make_bp()
+        lman = self._make_lman()
         return source.AppArch(bp, lman)
 
-    def __make_lman(self):
+    def _make_lman(self):
         lman = LoginManager()
 
         @lman.unauthorized_handler
@@ -140,8 +141,8 @@ class Arch:
 
         return lman
 
-    def __make_bp(self):
-        bp = source.make_blueprint(self.__urlprefix)
+    def _make_bp(self):
+        bp = source.make_blueprint(self._urlprefix)
 
         @bp.route('/login', methods=['GET','POST'])
         def login():
@@ -154,19 +155,19 @@ class Arch:
                 if username in self.__userdict and\
                     self.__userdict[username].check_password(password):
                     login_user(self.__userdict[username])
-                    return self.__reroute('login')
+                    return self._reroute('login')
                 self.error('invalid credentials')
                 rscode = 401
-            return render_template(self.__templ['login']), rscode
+            return render_template(self._templ['login']), rscode
 
         @bp.route('/profile')
         @login_required
         def profile():
-            return render_template(self.__templ['profile'])
+            return render_template(self._templ['profile'])
 
         @bp.route('/logout')
         def logout():
             logout_user()
-            return self.__reroute('logout')
+            return self._reroute('logout')
 
         return bp

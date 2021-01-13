@@ -4,34 +4,23 @@ expect database system (interact with sqlalchemy)
 '''
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from viauth import sqlorm, userpriv
-from viauth.persistdb import withadmin
+from viauth import sqlorm, userpriv, formutil
+from viauth.persistdb import persistdb, adminarch
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError
-
-class AuthRole(sqlorm.ViAuthBase, sqlorm.Base):
-    __tablename__ = "authrole"
-    id = Column(Integer, primary_key = True)
-    name = Column(String(50),unique=True,nullable=False)
-    level = Column(Integer, unique=False, nullable=False)
-
-    def __init__(self, reqform):
-        self.name = reqform.get('name')
-        self.level = reqform.get('level')
-
-    def update(self, reqform):
-        self.name = reqform.get('name')
-        self.level = reqform.get('level')
-
-    def delete(self):
-        pass
+from sqlalchemy.ext.declarative import declared_attr
 
 # is_admin now is a trait for super_admins
-class AuthUser(withadmin.AuthUser):
+class AuthUserMixin(persistdb.AuthUserMixin, adminarch.UserMixin):
     # set to null on cascade
-    rid = Column(Integer, ForeignKey('authrole.id', ondelete='SET NULL'), nullable=True)
-    role = relationship("AuthRole", foreign_keys=[rid])
+    @declared_attr
+    def rid(cls):
+        return Column(Integer, ForeignKey('authrole.id', ondelete='SET NULL'), nullable=True)
+
+    @declared_attr
+    def role(cls):
+        return relationship("AuthRole", foreign_keys=[cls.rid])
 
     def _formgen_assist(session):
         return AuthRole.query.all()
@@ -41,53 +30,104 @@ class AuthUser(withadmin.AuthUser):
         self.rid = None # user start with no role
 
     def admin_create(self, reqform):
-        super().admin_create(reqform)
         # user is being created by an admin
         # for instance, privilege elevation or role modificaion can occur here
         self.rid = reqform.get("rid")
 
     def admin_update(self, reqform):
-        super().admin_update(reqform)
         # only admin can change a user's role id
         self.rid = reqform.get("rid")
 
+    def admin_delete(self):
+        # user being deleted by admin
+        pass
+
+class AuthRoleMixin(sqlorm.ViAuthBase):
+    @declared_attr
+    def id(cls):
+        return Column(Integer, primary_key = True)
+
+    @declared_attr
+    def name(cls):
+        return Column(String(50),unique=True,nullable=False)
+
+    @declared_attr
+    def level(cls):
+        return Column(Integer, unique=False, nullable=False) # authority level of role
+
+    @declared_attr
+    def is_admin(cls):
+        return Column(Boolean(), nullable=False) # boolean flag to indicate admin or not
+
+    def __init__(self, reqform):
+        self.name = reqform.get('name')
+        self.level = reqform.get('level')
+        self.is_admin = formutil.getbool(reqform, "is_admin")
+
+    def update(self, reqform):
+        self.name = reqform.get('name')
+        self.level = reqform.get('level')
+        self.is_admin = formutil.getbool(reqform, "is_admin")
+
+    def delete(self):
+        pass
+
+class AuthUser(AuthUserMixin, sqlorm.Base):
+    __tablename__ = "authuser"
+    # This prevents errors,
+    # BUT DO NOT USE UNDER NORMAL CIRCUMSTANCES AS IT MAY INDICATE MULTIPLE DEFINITIONS
+    __table_args__ = {'extend_existing': True}
+
+    def __init__(self, reqform):
+        super().__init__(reqform)
+
+class AuthRole(AuthRoleMixin, sqlorm.Base):
+    __tablename__ = "authrole"
+    # This prevents errors,
+    # BUT DO NOT USE UNDER NORMAL CIRCUMSTANCES AS IT MAY INDICATE MULTIPLE DEFINITIONS
+    __table_args__ = {'extend_existing': True}
+
+    def __init__(self, reqform):
+        super().__init__(reqform)
+
+
 '''
-withadmin.Arch
+withrole.Arch (adminarch)
 templates: login, profile, unauth, register, update, users, register_other, update_other, (insert_role, roles, update_role)
 reroutes: login, logout, register, update, register_other, update_other, delete_other, (insert_role, update_role, delete_role)
 '''
-class Arch(withadmin.Arch):
-    def __init__(self, dburi, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, routes_disabled = []):
-        assert issubclass(authuser_class, AuthUser)
-        assert issubclass(authrole_class, AuthRole)
-        super().__init__(dburi, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
-        self.__arclass = authrole_class
-        self.__default_tp('roles', 'roles.html')
-        self.__default_tp('insert_role', 'insert_role.html')
-        self.__default_tp('update_role', 'update_role.html')
-        self.__default_rt('insert_role', 'viauth.roles')
-        self.__default_rt('update_role', 'viauth.roles')
-        self.__default_rt('delete_role', 'viauth.roles')
-        self.__accesspriv = access_priv
+class Arch(adminarch.Base):
+    def __init__(self, dburi, ormbase = sqlorm.Base, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, routes_disabled = []):
+        assert issubclass(authuser_class, AuthUserMixin)
+        assert issubclass(authrole_class, AuthRoleMixin)
+        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
+        self._arclass = authrole_class
+        self._default_tp('roles', 'roles.html')
+        self._default_tp('insert_role', 'insert_role.html')
+        self._default_tp('update_role', 'update_role.html')
+        self._default_rt('insert_role', 'viauth.roles')
+        self._default_rt('update_role', 'viauth.roles')
+        self._default_rt('delete_role', 'viauth.roles')
+        self._accesspriv = access_priv
         # default role access privileges
-        self.__default_ra('users','admin') # requires role.name == admin to access 'users'
-        self.__default_ra('register_other','admin')
-        self.__default_ra('delete_other','admin')
-        self.__default_ra('update_other','admin')
-        self.__default_ra('roles', 'admin')
-        self.__default_ra('insert_role', 'admin')
-        self.__default_ra('update_role', 'admin')
-        self.__default_ra('delete_role', 'admin')
+        self._default_ra('users', userpriv.role_required('admin')) # requires role.name == admin to access 'users'
+        self._default_ra('register_other',userpriv.role_required('admin'))
+        self._default_ra('delete_other',userpriv.role_required('admin'))
+        self._default_ra('update_other',userpriv.role_required('admin'))
+        self._default_ra('roles', userpriv.role_required('admin'))
+        self._default_ra('insert_role', userpriv.role_required('admin'))
+        self._default_ra('update_role', userpriv.role_required('admin'))
+        self._default_ra('delete_role', userpriv.role_required('admin'))
 
-    def __default_ra(self, key, value):
-        if not self.__accesspriv.get(key):
-            self.__accesspriv[key] = value
+    def _default_ra(self, key, value):
+        if not self._accesspriv.get(key):
+            self._accesspriv[key] = value
 
     def __insert_role(self):
         rscode = 200
         if request.method == 'POST':
             try:
-                r = self.__arclass(request.form)
+                r = self._arclass(request.form)
                 self.session.add(r)
                 self.session.commit()
                 self.ok('role created')
@@ -119,7 +159,7 @@ class Arch(withadmin.Arch):
 
     def __delete_role(self, r):
         try:
-            r = self.__arclass.query.filter(self.__arclass.id == rid).first()
+            r = self._arclass.query.filter(self._arclass.id == rid).first()
             if not r:
                 abort(400)
             r.delete()
@@ -132,75 +172,75 @@ class Arch(withadmin.Arch):
         self.session.rollback()
         return False
 
-    def __make_bp(self):
-        bp = super(withadmin.Arch, self).__make_bp() #calling grandparent function
+    def _make_bp(self):
+        bp = super()._make_bp()
 
         # this is defined in persistdb/withadmin.py
-        if 'users' not in self.__rdisable:
+        if 'users' not in self._rdisable:
             @bp.route('/users')
-            @userpriv.role_required(self.__accesspriv['users'])
+            @self._accesspriv['users']
             def users():
-                return self.__return_users()
+                return self._return_users()
 
         # this is defined in persistdb/withadmin.py
-        if 'register_other' not in self.__rdisable:
+        if 'register_other' not in self._rdisable:
             @bp.route('/sudo/register', methods=['GET','POST'])
-            @userpriv.role_required(self.__accesspriv['register_other'])
+            @self._accesspriv['register_other']
             def register_other():
-                return self.__return_register_other()
+                return self._return_register_other()
 
         # this is defined in persistdb/withadmin.py
-        if 'update_other' not in self.__rdisable:
+        if 'update_other' not in self._rdisable:
             @bp.route('/sudo/update/<uid>', methods=['GET','POST'])
-            @userpriv.role_required(self.__accesspriv['update_other'])
+            @self._accesspriv['update_other']
             def update_other(uid):
-                return self.__return_update_other(uid)
+                return self._return_update_other(uid)
 
         # this is defined in persistdb/withadmin.py
-        if 'delete_other' not in self.__rdisable:
+        if 'delete_other' not in self._rdisable:
             @bp.route('/sudo/delete/<uid>')
-            @userpriv.role_required(self.__accesspriv['delete_other'])
+            @self._accesspriv['delete_other']
             def delete_other(uid):
-                return self.__return_delete_other(uid)
+                return self._return_delete_other(uid)
 
-        if 'roles' not in self.__rdisable:
+        if 'roles' not in self._rdisable:
             @bp.route('/roles')
-            @userpriv.role_required(self.__accesspriv['roles'])
+            @self._accesspriv['roles']
             def roles():
-                rlist = self.__arclass.query.all()
-                return render_template(self.__templ['roles'], data = rlist)
+                rlist = self._arclass.query.all()
+                return render_template(self._templ['roles'], data = rlist)
 
-        if 'insert_role' not in self.__rdisable:
+        if 'insert_role' not in self._rdisable:
             @bp.route('/role/register', methods=['GET','POST'])
-            @userpriv.role_required(self.__accesspriv['insert_role'])
+            @self._accesspriv['insert_role']
             def insert_role():
                 rbool, rscode = self.__insert_role()
                 if rbool:
-                    return self.__reroute('insert_role')
-                form = self.__arclass._formgen_assist(self.session)
-                return render_template(self.__templ['insert_role'], form=form), rscode
+                    return self._reroute('insert_role')
+                form = self._arclass._formgen_assist(self.session)
+                return render_template(self._templ['insert_role'], form=form), rscode
 
-        if 'update_role' not in self.__rdisable:
+        if 'update_role' not in self._rdisable:
             @bp.route('/role/update/<rid>', methods=['GET','POST'])
-            @userpriv.role_required(self.__accesspriv['update_role'])
+            @self._accesspriv['update_role']
             def update_role(rid):
-                r = self.__arclass.query.filter(self.__arclass.id == rid).first()
+                r = self._arclass.query.filter(self._arclass.id == rid).first()
                 if not r:
                     abort(400)
                 rbool, rscode = self.__update_role(r)
                 if rbool:
-                    return self.__reroute('update_role')
-                form = self.__arclass._formgen_assist(self.session)
-                return render_template(self.__templ['update_role'], data=r, form=form), rscode
+                    return self._reroute('update_role')
+                form = self._arclass._formgen_assist(self.session)
+                return render_template(self._templ['update_role'], data=r, form=form), rscode
 
-        if 'delete_role' not in self.__rdisable:
+        if 'delete_role' not in self._rdisable:
             @bp.route('/role/delete/<rid>')
-            @userpriv.role_required(self.__accesspriv['delete_role'])
+            @self._accesspriv['delete_role']
             def delete_role(rid):
-                r = self.__arclass.query.filter(self.__arclass.id == rid).first()
+                r = self._arclass.query.filter(self._arclass.id == rid).first()
                 if not r:
                     abort(400)
                 self.__delete_role(r)
-                self.__reroute('delete_role')
+                self._reroute('delete_role')
 
         return bp
