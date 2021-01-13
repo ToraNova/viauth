@@ -111,13 +111,13 @@ class Arch(adminarch.Base):
         self._accesspriv = access_priv
         # default role access privileges
         self._default_ra('users', userpriv.role_required('admin')) # requires role.name == admin to access 'users'
-        self._default_ra('register_other',userpriv.role_required('admin'))
-        self._default_ra('delete_other',userpriv.role_required('admin'))
-        self._default_ra('update_other',userpriv.role_required('admin'))
-        self._default_ra('roles', userpriv.role_required('admin'))
-        self._default_ra('insert_role', userpriv.role_required('admin'))
-        self._default_ra('update_role', userpriv.role_required('admin'))
-        self._default_ra('delete_role', userpriv.role_required('admin'))
+        self._default_ra('register_other',userpriv.role_isadmin('admin'))
+        self._default_ra('delete_other',userpriv.role_isadmin('admin'))
+        self._default_ra('update_other',userpriv.role_isadmin('admin'))
+        self._default_ra('roles', userpriv.role_isadmin('admin'))
+        self._default_ra('insert_role', userpriv.role_isadmin('admin'))
+        self._default_ra('update_role', userpriv.role_isadmin('admin'))
+        self._default_ra('delete_role', userpriv.role_isadmin('admin'))
 
     def _default_ra(self, key, value):
         if not self._accesspriv.get(key):
