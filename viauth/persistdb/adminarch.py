@@ -19,7 +19,8 @@ templates: login, profile, unauth, register, update, (users, register_other, upd
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
 class Base(persistdb.Arch):
-    def __init__(self, dburi, ormbase = sqlorm.Base,  templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=persistdb.AuthUser, routes_disabled = []):
+    def __init__(self, dburi, ormbase = sqlorm.Base,  templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=None, routes_disabled = []):
+        assert issubclass(authuser_class, UserMixin)
         super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
         self._default_tp('users', 'users.html')
         self._default_tp('register_other', 'register_other.html')

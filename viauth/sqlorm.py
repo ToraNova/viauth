@@ -17,15 +17,6 @@ from sqlalchemy.ext.declarative import declarative_base
 DBstruct = namedtuple("DBstruct", ["engine","metadata","session","base"])
 Base = declarative_base()
 
-def make_dbstruct(dburi):
-    '''deprecated, but kept for references'''
-    engine = create_engine(dburi)
-    metadata = MetaData(bind=engine)
-    session = make_session(engine)
-    base = declarative_base()
-    base.query = session.query_property()
-    return DBstruct(engine, metadata, session, base)
-
 def make_session(engine, base = Base):
     '''create a session and bind the Base query property to it'''
     sess =  scoped_session(sessionmaker(autocommit=False,autoflush=False,bind=engine))

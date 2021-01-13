@@ -22,9 +22,6 @@ class AuthUserMixin(persistdb.AuthUserMixin, adminarch.UserMixin):
     def role(cls):
         return relationship("AuthRole", foreign_keys=[cls.rid])
 
-    def _formgen_assist(session):
-        return AuthRole.query.all()
-
     def __init__(self, reqform):
         super().__init__(reqform)
         self.rid = None # user start with no role
@@ -77,6 +74,9 @@ class AuthUser(AuthUserMixin, sqlorm.Base):
     # This prevents errors,
     # BUT DO NOT USE UNDER NORMAL CIRCUMSTANCES AS IT MAY INDICATE MULTIPLE DEFINITIONS
     __table_args__ = {'extend_existing': True}
+
+    def _formgen_assist(session):
+        return AuthRole.query.all()
 
     def __init__(self, reqform):
         super().__init__(reqform)
