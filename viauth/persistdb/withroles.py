@@ -159,9 +159,6 @@ class Arch(adminarch.Base):
 
     def __delete_role(self, r):
         try:
-            r = self._arclass.query.filter(self._arclass.id == rid).first()
-            if not r:
-                abort(400)
             r.delete()
             self.session.delete(r)
             self.session.commit()
