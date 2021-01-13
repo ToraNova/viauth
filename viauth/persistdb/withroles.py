@@ -241,6 +241,6 @@ class Arch(adminarch.Base):
                 if not r:
                     abort(400)
                 self.__delete_role(r)
-                self._reroute('delete_role')
+                return self._reroute('delete_role')
 
         return bp
