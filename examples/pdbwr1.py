@@ -94,6 +94,7 @@ def test_run(client):
     rv = client.get('/viauth/roles')
     assert rv.status_code == 200
     assert b'peasant' in rv.data
+    assert b'testdel' in rv.data
 
     rv = client.get('/viauth/sudo/delete/2', follow_redirects=True)
     assert rv.status_code == 200
@@ -106,6 +107,10 @@ def test_run(client):
     rv = client.get('/viauth/role/update/2')
     assert rv.status_code == 200
     assert b'peasant' in rv.data
+
+    rv = client.get('/viauth/role/delete/4', follow_redirects=True)
+    assert rv.status_code == 200
+    assert b'testdel' not in rv.data
 
     rv = client.post('/viauth/role/update/3', data=dict(name='premium', level=4), follow_redirects=True)
     assert rv.status_code == 200

@@ -54,7 +54,7 @@ def create_app(test_config=None):
     arch.init_app(app)
 
     if addflag:
-        for r in [{"name":"admin","level":0,"is_admin":True}, {"name":"peasant","level":4,"is_admin":False}, {"name":"premium","level":3,"is_admin":False}]:
+        for r in [{"name":"admin","level":0,"is_admin":True}, {"name":"peasant","level":4,"is_admin":False}, {"name":"premium","level":3,"is_admin":False}, {"name":"testdel","level":5,"is_admin":False}]:
             nr = AuthRole(r)
             arch.session.add(nr)
         arch.session.commit()
