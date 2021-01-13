@@ -9,11 +9,7 @@
 		<input name="name" value="{{ data.name }}" required></br>
 
 		<label>is admin?</label>
-			{% if data.is_admin %}
-				<input name="is_admin" type="checkbox" checked>
-			{% else %}
-				<input name="is_admin" type="checkbox">
-			{% endif %}
+			<input name="is_admin" type="checkbox" {% if data.is_admin %}checked{% endif %}>
 		</br>
 
 		<label>privilege level</label></br>
