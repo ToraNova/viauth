@@ -110,7 +110,7 @@ class Arch(adminarch.Base):
         self._default_rt('delete_role', 'viauth.roles')
         self._accesspriv = access_priv
         # default role access privileges
-        self._default_ra('users', userpriv.role_required('admin')) # requires role.name == admin to access 'users'
+        self._default_ra('users', userpriv.role_isadmin('admin')) # requires role.name == admin to access 'users'
         self._default_ra('register_other',userpriv.role_isadmin('admin'))
         self._default_ra('delete_other',userpriv.role_isadmin('admin'))
         self._default_ra('update_other',userpriv.role_isadmin('admin'))

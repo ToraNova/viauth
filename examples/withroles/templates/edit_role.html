@@ -7,7 +7,18 @@
 	<form method="post">
 		<label>role name</label></br>
 		<input name="name" value="{{ data.name }}" required></br>
+
+		<label>is admin?</label>
+			{% if data.is_admin %}
+				<input name="is_admin" type="checkbox" checked>
+			{% else %}
+				<input name="is_admin" type="checkbox">
+			{% endif %}
+		</br>
+
 		<label>privilege level</label></br>
+		<input name="level" type="number" value="{{ data.level }}" required></br>
+
 		<input name="level" type="number" value="{{ data.level }}" required></br>
 		<button type="submit">create</button>
 	</form>
