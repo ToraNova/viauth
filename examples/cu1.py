@@ -46,31 +46,34 @@ def test_run(client):
     assert rv.status_code == 302 #redirected
 
     rv = client.post('/viauth/login', data=dict(username='jason', password='test'), follow_redirects = True)
+    assert rv.status_code == 400
+
+    rv = client.post('/viauth/login', data=dict(emailaddr='jason@mail.test', password='test'), follow_redirects = True)
     assert rv.status_code == 401
 
-    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='tingmail'), follow_redirects = True)
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='ting@mail.test'), follow_redirects = True)
     assert rv.status_code == 200
     assert b'successfully registered' in rv.data
 
-    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='newmail'), follow_redirects = True)
+    rv = client.post('/viauth/register', data=dict(username='ting', password='hello', emailaddr='jason@mail.test'), follow_redirects = True)
     assert rv.status_code == 409
     assert b'registration unavailable' in rv.data
 
-    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='tingmail'), follow_redirects = True)
+    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='ting@mail.test'), follow_redirects = True)
     assert rv.status_code == 409
     assert b'registration unavailable' in rv.data
 
-    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='newmail'), follow_redirects = True)
+    rv = client.post('/viauth/register', data=dict(username='jason', password='test123', emailaddr='jason@mail.test'), follow_redirects = True)
     assert rv.status_code == 200
     assert b'successfully registered' in rv.data
 
-    rv = client.post('/viauth/login', data=dict(username='jason', password='test123'), follow_redirects = True)
+    rv = client.post('/viauth/login', data=dict(emailaddr='jason@mail.test', password='test123'), follow_redirects = True)
     assert rv.status_code == 200
     assert b'hello, jason' in rv.data
     assert b'login successful' in rv.data
 
     rv = client.get('/viauth/profile')
-    assert b'newmail' in rv.data
+    assert b'jason@mail.test' in rv.data
     lut = rv.data[rv.data.find(b'updated on: ')+12:]
     lut = lut[: lut.find(b'</p>')]
 

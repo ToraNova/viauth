@@ -92,7 +92,11 @@ def create_app(test_config=None):
         reroutes= {
             'login':'home',
             },
-        authuser_class = ExtendedAuthUser
+        authuser_class = ExtendedAuthUser,
+        # if we want to set the arch to login using emailaddress
+        login_key = {
+            'match': {'attr': 'emailaddr', 'form':'emailaddr'}
+            }
     )
 
     arch.init_app(app)

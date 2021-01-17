@@ -6,7 +6,7 @@ import datetime
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
 from viauth import source, basic, sqlorm, userpriv
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, or_, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -78,7 +78,7 @@ templates: login, profile, unauth, (register, update)
 reroutes: login, logout, (register, update)
 '''
 class Arch(basic.Arch):
-    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
+    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, AuthUserMixin)
         super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
         self._default_tp('register', 'register.html')
@@ -88,6 +88,18 @@ class Arch(basic.Arch):
         self._auclass = authuser_class
         self._rdisable = routes_disabled
         self.session = sqlorm.connect(dburi, ormbase)
+        self.set_loginkey(login_key)
+
+    def set_loginkey(self, login_key):
+        if not login_key.get('match'):
+            login_key['match'] = {'attr': 'name', 'form':'username'}
+        if login_key['match'].get('type') == 'multi_attr':
+            t = type(login_key['match']['attr'])
+            if t is not list and t is not tuple:
+                raise TypeError('matching type multi_attr on login_key requires attr to be either list or tuple. type: %s' % t)
+            if len(login_key['match']['attr']) < 2:
+                raise AttributeError('matching type multi_attr on login_key should have at least 2 attribute.')
+        self._loginkey = login_key
 
     def init_app(self, app):
         apparch = self.generate()
@@ -110,24 +122,36 @@ class Arch(basic.Arch):
     def __login(self):
         rscode = 200
         if request.method == 'POST':
-            username = request.form.get('username')
+            match = request.form.get(self._loginkey['match']['form'])
             password = request.form.get('password')
-            if not username or not password:
+            if not match or not password:
                 abort(400)
-            u = self._auclass.query.filter(self._auclass.name == username).first()
+
+            if not self._loginkey['match'].get('type'):
+                # single type matching. default to self._auclass.name == form['username']
+                a = self._loginkey['match']['attr']
+                u = self._auclass.query.filter(getattr(self._auclass, a)  == match).first()
+            elif self._loginkey['match']['type'] == 'multi_attr':
+                # single form value to match with multiple attribute
+                # use case include smth like, login with email OR username
+                for a in self._loginkey['match']['attr']:
+                    u = self._auclass.query.filter(getattr(self._auclass, a) == match).first()
+                    if u:
+                        break
+
             if u and u.check_password(password):
                 try:
                     u.login() # runs the login callback
                     self.session.add(u)
                     self.session.commit()
                     login_user(u) # flask-login do the rest
-                    self.ok('login successful')
+                    self.ok('login successful.')
                     return True, None
                 except Exception as e:
                     self.ex(e)
                 self.session.rollback()
             else:
-                self.error('invalid credentials')
+                self.error('invalid credentials.')
                 rscode = 401
         return False, rscode
 
@@ -137,7 +161,7 @@ class Arch(basic.Arch):
             self.session.add(current_user)
             self.session.commit()
             logout_user()
-            self.ok('logout successful')
+            self.ok('logout successful.')
             return True # success
         except Exception as e:
             self.ex(e)
@@ -151,10 +175,10 @@ class Arch(basic.Arch):
                 u = self._auclass(request.form) # create the user
                 self.session.add(u)
                 self.session.commit()
-                self.ok('successfully registered')
+                self.ok('successfully registered.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('registration unavailable')
+                self.error('registration unavailable.')
                 rscode = 409
             except Exception as e:
                 self.ex(e)
@@ -169,10 +193,10 @@ class Arch(basic.Arch):
                 current_user.update(request.form) # runs the update callback
                 self.session.add(current_user)
                 self.session.commit()
-                self.ok('user profile updated')
+                self.ok('user profile updated.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('integrity error')
+                self.error('integrity error.')
                 rscode = 409
             except Exception as e:
                 self.ex(e)
@@ -184,7 +208,7 @@ class Arch(basic.Arch):
             current_user.delete() # runs the delete callback
             self.session.delete(current_user)
             self.session.commit()
-            self.ok('account deleted')
+            self.ok('account deleted.')
             return True # success
         except Exception as e:
             self.ex(e)
@@ -256,8 +280,11 @@ class Arch(basic.Arch):
 
         @bp.route('/logout')
         def logout():
-            if self.__logout():
-                return self._reroute('logout')
-            return redirect(url_for('viauth.profile'))
+            if current_user.is_authenticated:
+                if self.__logout():
+                    return self._reroute('logout')
+                return redirect(url_for('viauth.profile')) # logout failure LOL
+            self.error('not logged in.')
+            return redirect(url_for('viauth.login'))
 
         return bp

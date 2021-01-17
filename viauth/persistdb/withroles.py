@@ -97,10 +97,10 @@ templates: login, profile, unauth, register, update, users, register_other, upda
 reroutes: login, logout, register, update, register_other, update_other, delete_other, (insert_role, update_role, delete_role)
 '''
 class Arch(adminarch.Base):
-    def __init__(self, dburi, ormbase = sqlorm.Base, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, routes_disabled = []):
+    def __init__(self, dburi, ormbase = sqlorm.Base, access_priv = {}, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, authrole_class=AuthRole, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, AuthUserMixin)
         assert issubclass(authrole_class, AuthRoleMixin)
-        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
+        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled, login_key)
         self._arclass = authrole_class
         self._default_tp('roles', 'roles.html')
         self._default_tp('insert_role', 'insert_role.html')
@@ -130,10 +130,10 @@ class Arch(adminarch.Base):
                 r = self._arclass(request.form)
                 self.session.add(r)
                 self.session.commit()
-                self.ok('role created')
+                self.ok('role created.')
                 return True, None
             except IntegrityError as e:
-                self.error('role already exists')
+                self.error('role already exists.')
                 rscode = 409
             except Exception as e:
                 self.ex(e)
@@ -147,10 +147,10 @@ class Arch(adminarch.Base):
                 r.update(request.form)
                 self.session.add(r)
                 self.session.commit()
-                self.ok('role updated')
+                self.ok('role updated.')
                 return True, None
             except IntegrityError as e:
-                self.error('role already exists')
+                self.error('role already exists.')
                 rscode = 409
             except Exception as e:
                 self.ex(e)
@@ -162,7 +162,7 @@ class Arch(adminarch.Base):
             r.delete()
             self.session.delete(r)
             self.session.commit()
-            self.error('role deleted')
+            self.error('role deleted.')
             return True
         except Exception as e:
             self.ex(e)

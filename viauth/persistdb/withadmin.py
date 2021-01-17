@@ -50,9 +50,9 @@ templates: login, profile, unauth, register, update, (users, register_other, upd
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
 class Arch(adminarch.Base):
-    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = []):
+    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, AuthUserMixin)
-        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled)
+        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled, login_key)
 
     def _make_bp(self):
         bp = super()._make_bp()
