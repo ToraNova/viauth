@@ -127,17 +127,19 @@ class Arch(basic.Arch):
             if not match or not password:
                 abort(400)
 
-            if not self._loginkey['match'].get('type'):
-                # single type matching. default to self._auclass.name == form['username']
-                a = self._loginkey['match']['attr']
-                u = self._auclass.query.filter(getattr(self._auclass, a)  == match).first()
-            elif self._loginkey['match']['type'] == 'multi_attr':
+            if self._loginkey['match']['type'] == 'multi_attr':
                 # single form value to match with multiple attribute
                 # use case include smth like, login with email OR username
                 for a in self._loginkey['match']['attr']:
                     u = self._auclass.query.filter(getattr(self._auclass, a) == match).first()
                     if u:
                         break
+            else:
+                # single type matching. default to self._auclass.name == form['username']
+                a = self._loginkey['match']['attr']
+                if type(a) == list or type(a) == tuple:
+                    a = a[0]
+                u = self._auclass.query.filter(getattr(self._auclass, a)  == match).first()
 
             if u and u.check_password(password):
                 try:
