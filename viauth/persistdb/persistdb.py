@@ -127,7 +127,7 @@ class Arch(basic.Arch):
             if not match or not password:
                 abort(400)
 
-            if self._loginkey['match']['type'] == 'multi_attr':
+            if self._loginkey['match'].get('type') == 'multi_attr':
                 # single form value to match with multiple attribute
                 # use case include smth like, login with email OR username
                 for a in self._loginkey['match']['attr']:
