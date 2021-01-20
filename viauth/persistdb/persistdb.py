@@ -5,7 +5,7 @@ expect database system (interact with sqlalchemy)
 import datetime
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from viauth import source, basic, sqlorm, userpriv
+from viauth import vial, basic, sqlorm, userpriv
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, or_, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declared_attr
@@ -117,7 +117,7 @@ class Arch(basic.Arch):
         lman = self._make_lman()
         if(not hasattr(self, 'session')):
             raise AttributeError("sql session unconfigured.")
-        return source.AppArch(bp, lman)
+        return vial.AppArch(bp, lman)
 
     def __login(self):
         rscode = 200
@@ -184,7 +184,6 @@ class Arch(basic.Arch):
                 rscode = 409
             except Exception as e:
                 self.ex(e)
-
             self.session.rollback()
         return False, rscode # fail
 
@@ -235,7 +234,7 @@ class Arch(basic.Arch):
         return lman
 
     def _make_bp(self):
-        bp = source.make_blueprint(self._urlprefix)
+        bp = vial.make_blueprint(self._urlprefix)
 
         # register self
         if 'register' not in self._rdisable:
