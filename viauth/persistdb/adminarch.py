@@ -2,6 +2,7 @@
 from flask import render_template, request, redirect, abort, flash, url_for
 from viauth.persistdb import persistdb
 from viauth import sqlorm
+from sqlalchemy.exc import IntegrityError
 
 class UserMixin:
     def admin_create(self, reqform):
