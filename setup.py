@@ -9,10 +9,11 @@ setup(
     author='Chia Jason',
     author_email='chia_jason96@live.com',
     url='https://github.com/toranova/viauth/',
+    download_url='https://github.com/ToraNova/viauth/archive/refs/tags/v0.1.7.tar.gz',
     license='MIT',
     include_package_data=True,
     zip_safe=False,
-    keywords = ['Flask', 'Authentication']
+    keywords = ['Flask', 'Authentication'],
     install_requires=[
         'flask','flask-login','sqlalchemy'
     ],
