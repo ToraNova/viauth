@@ -1,21 +1,24 @@
 from setuptools import find_packages, setup
-from viauth.vial import name, description, version
+
+_version = '0.1.8'
 
 setup(
-    name=name,
-    version=version,
-    description=description,
+    name='viauth',
+    version=_version,
+    description='vial-auth (viauth), a flask mini login/auth module for development bootstrapping',
     packages=find_packages(),
     author='Chia Jason',
     author_email='chia_jason96@live.com',
     url='https://github.com/toranova/viauth/',
-    download_url='https://github.com/ToraNova/viauth/archive/refs/tags/v0.1.7.tar.gz',
+    download_url='https://github.com/ToraNova/viauth/archive/refs/tags/v%s.tar.gz' % _version,
     license='MIT',
     include_package_data=True,
     zip_safe=False,
     keywords = ['Flask', 'Authentication'],
     install_requires=[
-        'flask','flask-login','sqlalchemy'
+        'flask',
+        'flask-login',
+        'sqlalchemy',
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -23,7 +26,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Intended Audience :: Developers",
-        "Topic :: Software Development :: Build Tools",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
