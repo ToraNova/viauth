@@ -14,7 +14,6 @@ from sqlalchemy import create_engine, MetaData, inspect
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-DBstruct = namedtuple("DBstruct", ["engine","metadata","session","base"])
 Base = declarative_base()
 
 def make_session(engine, base = Base):

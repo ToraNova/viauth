@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-_version = '0.1.8'
+_version = '0.1.9'
 
 setup(
     name='viauth',
@@ -17,6 +17,7 @@ setup(
     keywords = ['Flask', 'Authentication'],
     install_requires=[
         'flask',
+        'vibase',
         'flask-login',
         'sqlalchemy',
     ],

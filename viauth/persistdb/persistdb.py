@@ -3,9 +3,10 @@ persistdb.py: sqlalchemy extension for basic.py
 expect database system (interact with sqlalchemy)
 '''
 import datetime
-from flask import render_template, request, redirect, abort, flash, url_for
+from flask import render_template, request, redirect, abort, flash, url_for, Blueprint
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from viauth import basic, sqlorm, userpriv, make_blueprint, AppArch
+from vicore import AppArchExt
+from viauth import basic, sqlorm, userpriv
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, or_, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declared_attr
@@ -103,7 +104,7 @@ class Arch(basic.Arch):
 
     def init_app(self, app):
         apparch = self.generate()
-        apparch.login_manager.init_app(app)
+        apparch.ext.init_app(app)
         app.register_blueprint(apparch.bp)
 
         @app.teardown_appcontext
@@ -117,7 +118,7 @@ class Arch(basic.Arch):
         lman = self._make_lman()
         if(not hasattr(self, 'session')):
             raise AttributeError("sql session unconfigured.")
-        return AppArch(bp, lman)
+        return AppArchExt(bp, lman)
 
     def __login(self):
         rscode = 200
@@ -234,7 +235,7 @@ class Arch(basic.Arch):
         return lman
 
     def _make_bp(self):
-        bp = make_blueprint(self._urlprefix)
+        bp = self._init_bp()
 
         # register self
         if 'register' not in self._rdisable:
