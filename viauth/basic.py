@@ -7,7 +7,7 @@ from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from jinja2.exceptions import TemplateNotFound
-from viauth import vial
+from viauth import make_blueprint, AppArch
 
 class AuthUser:
     '''A basic user authentication account following flask-login'''
@@ -124,7 +124,7 @@ class Arch:
     def generate(self):
         bp = self._make_bp()
         lman = self._make_lman()
-        return vial.AppArch(bp, lman)
+        return AppArch(bp, lman)
 
     def _make_lman(self):
         lman = LoginManager()
@@ -142,7 +142,7 @@ class Arch:
         return lman
 
     def _make_bp(self):
-        bp = vial.make_blueprint(self._urlprefix)
+        bp = make_blueprint(self._urlprefix)
 
         @bp.route('/login', methods=['GET','POST'])
         def login():
