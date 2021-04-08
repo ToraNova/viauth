@@ -5,8 +5,14 @@ A mini flask (vial) project for authentication architecture using [flask-login](
 
 ## Installation
 Recommend to do this in a virtual environment!
+
+### Latest Version
 ```bash
 pip install git+git://github.com/toranova/viauth.git@master
+```
+### pypi Release
+```bash
+pip install viauth
 ```
 
 ## Testing the current build
