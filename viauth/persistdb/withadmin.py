@@ -4,14 +4,13 @@ expect database system (interact with sqlalchemy)
 '''
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from vicore import formutil
-from viauth import sqlorm, userpriv
-from viauth.persistdb import persistdb, adminarch
+from viauth import userpriv
+from viauth.persistdb import AuthUserMixin, adminarch, sqlorm, formutil
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declared_attr
 
-class AuthUserMixin(persistdb.AuthUserMixin, adminarch.UserMixin):
+class AuthUserMixin(AuthUserMixin, adminarch.UserMixin):
 
     @declared_attr
     def is_admin(cls):
@@ -55,8 +54,8 @@ class Arch(adminarch.Base):
         assert issubclass(authuser_class, AuthUserMixin)
         super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled, login_key)
 
-    def _make_bp(self):
-        bp = super()._make_bp()
+    def generate_blueprint(self):
+        bp = super().generate_blueprint()
 
         if 'users' not in self._rdisable:
             @bp.route('/users')

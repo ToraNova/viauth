@@ -7,7 +7,7 @@ from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from jinja2.exceptions import TemplateNotFound
-from vicore import AppArchExt, ViArchBase
+from vicore import BaseArch, AppArchExt
 
 class AuthUser:
     '''A basic user authentication account following flask-login'''
@@ -32,7 +32,7 @@ basic.Arch
 templates: login, profile, unauth
 reroutes: login, logout
 '''
-class Arch(ViArchBase):
+class Arch(BaseArch):
     def __init__(self, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix = None):
         '''
         initialize the architecture for the vial
@@ -62,7 +62,7 @@ class Arch(ViArchBase):
                 return u
 
     def init_app(self, app):
-        apparch = self.generate()
+        apparch = self.generate_apparch()
         apparch.ext.init_app(app)
         app.register_blueprint(apparch.bp)
 
@@ -79,12 +79,12 @@ class Arch(ViArchBase):
         except TemplateNotFound:
             return 'login required. please login at %s' % url_for('viauth.login', _external=True), 401
 
-    def generate(self):
-        bp = self._make_bp()
-        lman = self._make_lman()
+    def generate_apparch(self):
+        bp = self.generate_blueprint()
+        lman = self.generate_lman()
         return AppArchExt(bp, lman)
 
-    def _make_lman(self):
+    def generate_lman(self):
         lman = LoginManager()
 
         @lman.unauthorized_handler
@@ -99,7 +99,7 @@ class Arch(ViArchBase):
 
         return lman
 
-    def _make_bp(self):
+    def generate_blueprint(self):
         bp = self._init_bp()
 
         @bp.route('/login', methods=['GET','POST'])

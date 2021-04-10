@@ -8,7 +8,7 @@
 
 	<label>role</label></br>
 	<select name="rid">
-	{% for f in form %}
+	{% for f in form_auxd %}
 		{% if current_user.rid == f.id %}
 		<option value="{{f.id}}" selected>{{ f.name }}</option>
 		{% else %}

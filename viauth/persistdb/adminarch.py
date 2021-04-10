@@ -1,7 +1,6 @@
 # this is shared between withadmin/ withroles, both using different userclasses
 from flask import render_template, request, redirect, abort, flash, url_for
-from viauth.persistdb import persistdb
-from viauth import sqlorm
+from viauth.persistdb import Arch, sqlorm
 from sqlalchemy.exc import IntegrityError
 
 class UserMixin:
@@ -19,7 +18,7 @@ adminarch Template
 templates: login, profile, unauth, register, update, (users, register_other, update_other)
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
-class Base(persistdb.Arch):
+class Base(Arch):
     def __init__(self, dburi, ormbase = sqlorm.Base,  templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=None, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, UserMixin)
         super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled, login_key)
@@ -85,9 +84,9 @@ class Base(persistdb.Arch):
         rbool, rscode = self.__register_other()
         if rbool:
             return self._reroute('register_other')
-        form = self._auclass._formgen_assist(self.session)
+        fauxd = self._auclass.form_auxdata_generate(self.session)
         # use the same form as 'register'
-        return render_template(self._templ['register_other'], form = form), rscode
+        return render_template(self._templ['register_other'], form_auxd = fauxd), rscode
 
     def _return_update_other(self, uid):
         u = self._auclass.query.filter(self._auclass.id == uid).first()
@@ -96,8 +95,8 @@ class Base(persistdb.Arch):
         rbool, rscode = self.__update_other(u)
         if rbool:
             return self._reroute('update_other')
-        form = self._auclass._formgen_assist(self.session)
-        return render_template(self._templ['update_other'], data = u, form=form), rscode
+        fauxd = self._auclass.form_auxdata_generate(self.session)
+        return render_template(self._templ['update_other'], data = u, form_auxd = fauxd), rscode
 
     def _return_delete_other(self, uid):
         u = self._auclass.query.filter(self._auclass.id == uid).first()

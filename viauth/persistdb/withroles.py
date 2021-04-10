@@ -4,16 +4,15 @@ expect database system (interact with sqlalchemy)
 '''
 from flask import render_template, request, redirect, abort, flash, url_for
 from flask_login import login_user, LoginManager, current_user, logout_user, login_required
-from vicore import formutil
-from viauth import sqlorm, userpriv
-from viauth.persistdb import persistdb, adminarch
+from viauth import userpriv
+from viauth.persistdb import AuthUserMixin, adminarch, sqlorm, formutil
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declared_attr
 
 # is_admin now is a trait for super_admins
-class AuthUserMixin(persistdb.AuthUserMixin, adminarch.UserMixin):
+class AuthUserMixin(AuthUserMixin, adminarch.UserMixin):
     # set to null on cascade
     @declared_attr
     def rid(cls):
@@ -40,7 +39,7 @@ class AuthUserMixin(persistdb.AuthUserMixin, adminarch.UserMixin):
         # user being deleted by admin
         pass
 
-class AuthRoleMixin(sqlorm.ViAuthBase):
+class AuthRoleMixin(sqlorm.Core):
     @declared_attr
     def id(cls):
         return Column(Integer, primary_key = True)
@@ -76,7 +75,7 @@ class AuthUser(AuthUserMixin, sqlorm.Base):
     # BUT DO NOT USE UNDER NORMAL CIRCUMSTANCES AS IT MAY INDICATE MULTIPLE DEFINITIONS
     __table_args__ = {'extend_existing': True}
 
-    def _formgen_assist(session):
+    def form_auxdata_generate(session):
         return AuthRole.query.all()
 
     def __init__(self, reqform):
@@ -170,8 +169,8 @@ class Arch(adminarch.Base):
         self.session.rollback()
         return False
 
-    def _make_bp(self):
-        bp = super()._make_bp()
+    def generate_blueprint(self):
+        bp = super().generate_blueprint()
 
         # this is defined in persistdb/withadmin.py
         if 'users' not in self._rdisable:
@@ -215,8 +214,8 @@ class Arch(adminarch.Base):
                 rbool, rscode = self.__insert_role()
                 if rbool:
                     return self._reroute('insert_role')
-                form = self._arclass._formgen_assist(self.session)
-                return render_template(self._templ['insert_role'], form=form), rscode
+                fauxd = self._arclass.form_auxdata_generate(self.session)
+                return render_template(self._templ['insert_role'], form_auxd=fauxd), rscode
 
         if 'update_role' not in self._rdisable:
             @bp.route('/role/update/<rid>', methods=['GET','POST'])
@@ -228,8 +227,8 @@ class Arch(adminarch.Base):
                 rbool, rscode = self.__update_role(r)
                 if rbool:
                     return self._reroute('update_role')
-                form = self._arclass._formgen_assist(self.session)
-                return render_template(self._templ['update_role'], data=r, form=form), rscode
+                fauxd = self._arclass.form_auxdata_generate(self.session)
+                return render_template(self._templ['update_role'], data=r, form_auxd=fauxd), rscode
 
         if 'delete_role' not in self._rdisable:
             @bp.route('/role/delete/<rid>')

@@ -51,6 +51,10 @@ def test_run(client):
     assert rv.status_code == 403
 
     # self elevation test
+    rv = client.get('/viauth/update')
+    assert b'<option' in rv.data and b'admin</' in rv.data
+    assert b'<option' in rv.data and b'peasant</' in rv.data
+
     rv = client.post('/viauth/update', data=dict(rid=0), follow_redirects=True)
     assert rv.status_code == 200
 
@@ -62,26 +66,26 @@ def test_run(client):
 
     rv = client.get('/pay')
     assert rv.status_code == 200
-    assert b'premium account activated.'
+    assert b'premium account activated.' in rv.data
 
     rv = client.get('/content')
     assert rv.status_code == 200
-    assert b'premium content.'
+    assert b'premium content.' in rv.data
 
     rv = client.get('/nopay')
     assert rv.status_code == 200
-    assert b'premium account deactivated.'
+    assert b'premium account deactivated.' in rv.data
 
     rv = client.get('/content')
     assert rv.status_code == 403
 
     rv = client.get('/pay')
     assert rv.status_code == 200
-    assert b'premium account activated.'
+    assert b'premium account activated.' in rv.data
 
     rv = client.get('/elevate')
     assert rv.status_code == 200
-    assert b'elevated.'
+    assert b'elevated.' in rv.data
 
     rv = client.get('/viauth/users')
     assert rv.status_code == 200
@@ -117,9 +121,13 @@ def test_run(client):
     assert b'peasant, 4' in rv.data
     assert b'premium, 4' in rv.data
 
+
     rv = client.post('/viauth/sudo/register', data=dict(username='ting2', password='test', rid=2), follow_redirects=True)
     assert rv.status_code == 200
     assert b'ting2, peasant' in rv.data
+
+    rv = client.get('/viauth/sudo/update/2')
+    assert b'<option' in rv.data and b'premium</' in rv.data
 
     rv = client.get('/viauth/logout', follow_redirects = True)
     assert rv.status_code == 200

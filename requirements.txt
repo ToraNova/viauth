@@ -14,5 +14,5 @@ pyparsing==2.4.7
 pytest==6.2.3
 SQLAlchemy==1.4.6
 toml==0.10.2
-vicore==0.1.0
+vicore>=0.1.1
 Werkzeug==1.0.1

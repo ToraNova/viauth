@@ -17,7 +17,7 @@ setup(
     keywords = ['Flask', 'Authentication'],
     install_requires=[
         'flask',
-        'vicore',
+        'vicore>=0.1.1',
         'flask-login',
         'sqlalchemy',
     ],
