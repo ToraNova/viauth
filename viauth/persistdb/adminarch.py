@@ -29,7 +29,7 @@ class Base(Arch):
         self._default_rt('update_other', 'viauth.users') # go to userlist after update
         self._default_rt('register_other', 'viauth.users') # go to userlist after update
 
-    def __register_other(self):
+    def _register_other(self):
         rscode = 200
         if request.method == 'POST':
             try:
@@ -47,7 +47,7 @@ class Base(Arch):
             self.session.rollback()
         return False, rscode # fail
 
-    def __update_other(self, u):
+    def _update_other(self, u):
         rscode = 200
         if request.method == 'POST':
             try:
@@ -64,7 +64,7 @@ class Base(Arch):
             self.session.rollback()
         return False, rscode
 
-    def __delete_other(self, u):
+    def _delete_other(self, u):
         try:
             u.admin_delete() # runs the admin_delete callback
             self.session.delete(u)
@@ -81,7 +81,7 @@ class Base(Arch):
         return render_template(self._templ['users'], data = ulist)
 
     def _return_register_other(self):
-        rbool, rscode = self.__register_other()
+        rbool, rscode = self._register_other()
         if rbool:
             return self._reroute('register_other')
         fauxd = self._auclass.form_auxdata_generate(self.session)
@@ -92,7 +92,7 @@ class Base(Arch):
         u = self._auclass.query.filter(self._auclass.id == uid).first()
         if not u:
             abort(400)
-        rbool, rscode = self.__update_other(u)
+        rbool, rscode = self._update_other(u)
         if rbool:
             return self._reroute('update_other')
         fauxd = self._auclass.form_auxdata_generate(self.session)
@@ -102,5 +102,5 @@ class Base(Arch):
         u = self._auclass.query.filter(self._auclass.id == uid).first()
         if not u:
             abort(400)
-        self.__delete_other(u)
+        self._delete_other(u)
         return self._reroute('delete_other')

@@ -123,7 +123,7 @@ class Arch(adminarch.Base):
         if not self._accesspriv.get(key):
             self._accesspriv[key] = value
 
-    def __insert_role(self):
+    def _insert_role(self):
         rscode = 200
         if request.method == 'POST':
             try:
@@ -140,7 +140,7 @@ class Arch(adminarch.Base):
             self.session.rollback()
         return False, rscode
 
-    def __update_role(self, r):
+    def _update_role(self, r):
         rscode = 200
         if request.method == 'POST':
             try:
@@ -157,7 +157,7 @@ class Arch(adminarch.Base):
             self.session.rollback()
         return False, rscode
 
-    def __delete_role(self, r):
+    def _delete_role(self, r):
         try:
             r.delete()
             self.session.delete(r)
@@ -211,7 +211,7 @@ class Arch(adminarch.Base):
             @bp.route('/role/register', methods=['GET','POST'])
             @self._accesspriv['insert_role']
             def insert_role():
-                rbool, rscode = self.__insert_role()
+                rbool, rscode = self._insert_role()
                 if rbool:
                     return self._reroute('insert_role')
                 fauxd = self._arclass.form_auxdata_generate(self.session)
@@ -224,7 +224,7 @@ class Arch(adminarch.Base):
                 r = self._arclass.query.filter(self._arclass.id == rid).first()
                 if not r:
                     abort(400)
-                rbool, rscode = self.__update_role(r)
+                rbool, rscode = self._update_role(r)
                 if rbool:
                     return self._reroute('update_role')
                 fauxd = self._arclass.form_auxdata_generate(self.session)
@@ -237,7 +237,7 @@ class Arch(adminarch.Base):
                 r = self._arclass.query.filter(self._arclass.id == rid).first()
                 if not r:
                     abort(400)
-                self.__delete_role(r)
+                self._delete_role(r)
                 return self._reroute('delete_role')
 
         return bp
