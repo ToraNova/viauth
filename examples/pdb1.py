@@ -84,7 +84,7 @@ def test_run(client):
     rv = client.post('/viauth/login', data=dict(username='jason', password='test123'), follow_redirects = True)
     assert rv.status_code == 200
     assert b'hello, jason' in rv.data
-    assert b'login successful' in rv.data
+    assert b'login success.' in rv.data
 
     rv = client.get('/users')
     assert rv.status_code == 200
@@ -105,7 +105,7 @@ def test_run(client):
 
     rv = client.get('/viauth/logout', follow_redirects=True)
     assert rv.status_code == 200
-    assert b'logout successful' in rv.data
+    assert b'off you GO!' in rv.data
 
     rv = client.get('/viauth/update')
     assert rv.status_code == 401

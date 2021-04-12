@@ -5,7 +5,7 @@ running this example:
 EXPORT FLASK_APP = cuclass
 flask run
 '''
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, flash
 from viauth.persistdb import Arch, AuthUserMixin
 from flask_login import login_required, current_user
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
@@ -91,6 +91,12 @@ def create_app(test_config=None):
             },
         reroutes= {
             'login':'home',
+            },
+        # custom user route execution callback
+        # flash('successfully registered','ok') when registration is OK instead of the default
+        # 'registered user account'
+        rex_callback = {
+            'register': {'ok': lambda *args, **kwargs: flash('successfully registered', 'ok')},
             },
         authuser_class = ExtendedAuthUser,
         # if we want to set the arch to login using emailaddress

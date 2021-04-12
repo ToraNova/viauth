@@ -5,7 +5,7 @@ to run:
 export FLASK_APP=basic
 flask run
 '''
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, flash
 from viauth.basic import Arch, AuthUser
 from flask_login import login_required
 

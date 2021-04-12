@@ -80,9 +80,9 @@ templates: login, profile, unauth, (register, update)
 reroutes: login, logout, (register, update)
 '''
 class Arch(basic.Arch):
-    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=AuthUser, routes_disabled = [], login_key = {}):
+    def __init__(self, dburi, ormbase = sqlorm.Base, templates = {}, reroutes = {}, reroutes_kwarg = {}, rex_callback={}, url_prefix=None, authuser_class=AuthUser, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, AuthUserMixin)
-        super().__init__(templates, reroutes, reroutes_kwarg, url_prefix)
+        super().__init__(templates, reroutes, reroutes_kwarg, rex_callback, url_prefix)
         self._default_tp('register', 'register.html')
         self._default_tp('update', 'update.html')
         self._default_rt('register', 'viauth.login') # go to login after registration
@@ -149,13 +149,13 @@ class Arch(basic.Arch):
                     self.session.add(u)
                     self.session.commit()
                     login_user(u) # flask-login do the rest
-                    self.ok('login successful.')
+                    self.ok('login', 'login success.')
                     return True, None
                 except Exception as e:
-                    self.ex(e)
+                    self.ex('login', e)
                 self.session.rollback()
             else:
-                self.error('invalid credentials.')
+                self.err('login', 'invalid credentials.')
                 rscode = 401
         return False, rscode
 
@@ -165,10 +165,10 @@ class Arch(basic.Arch):
             self.session.add(current_user)
             self.session.commit()
             logout_user()
-            self.ok('logout successful.')
+            self.ok('logout', 'logout success.')
             return True # success
         except Exception as e:
-            self.ex(e)
+            self.ex('logout', e)
         self.session.rollback()
         return False # fail
 
@@ -179,13 +179,13 @@ class Arch(basic.Arch):
                 u = self._auclass(request.form) # create the user
                 self.session.add(u)
                 self.session.commit()
-                self.ok('successfully registered.')
+                self.ok('register', 'successfully registered user account.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('registration unavailable.')
+                self.err('register', 'registration unavailable.')
                 rscode = 409
             except Exception as e:
-                self.ex(e)
+                self.ex('register', e)
             self.session.rollback()
         return False, rscode # fail
 
@@ -196,13 +196,13 @@ class Arch(basic.Arch):
                 current_user.update(request.form) # runs the update callback
                 self.session.add(current_user)
                 self.session.commit()
-                self.ok('user profile updated.')
+                self.ok('update', 'successfully updated user account.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('integrity error.')
+                self.err('update', 'integrity error.')
                 rscode = 409
             except Exception as e:
-                self.ex(e)
+                self.ex('update', e)
             self.session.rollback()
         return False, rscode # fail
 
@@ -211,10 +211,10 @@ class Arch(basic.Arch):
             current_user.delete() # runs the delete callback
             self.session.delete(current_user)
             self.session.commit()
-            self.ok('account deleted.')
+            self.ok('delete', 'successfully deleted user account.')
             return True # success
         except Exception as e:
-            self.ex(e)
+            self.ex('delete', e)
         self.session.rollback()
         return False # fail
 
@@ -287,7 +287,7 @@ class Arch(basic.Arch):
                 if self.__logout():
                     return self._reroute('logout')
                 return redirect(url_for('viauth.profile')) # logout failure LOL
-            self.error('not logged in.')
+            self.err('logout', 'not logged in.')
             return redirect(url_for('viauth.login'))
 
         return bp

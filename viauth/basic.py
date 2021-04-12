@@ -33,13 +33,13 @@ templates: login, profile, unauth
 reroutes: login, logout
 '''
 class Arch(BaseArch):
-    def __init__(self, templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix = None):
+    def __init__(self, templates = {}, reroutes = {}, reroutes_kwarg = {}, rex_callback = {}, url_prefix = None):
         '''
         initialize the architecture for the vial
         templ is a dictionary that returns user specified templates to user on given routes
         reroutes is a dictionary that reroutes the user after certain actions on given routes
         '''
-        super().__init__('viauth', templates, reroutes, reroutes_kwarg, url_prefix)
+        super().__init__('viauth', templates, reroutes, reroutes_kwarg, rex_callback, url_prefix)
         self.__userdict = {} # only for basic
         self._default_tp('login', 'login.html')
         self._default_tp('profile', 'profile.html')
@@ -113,8 +113,9 @@ class Arch(BaseArch):
                 if username in self.__userdict and\
                     self.__userdict[username].check_password(password):
                     login_user(self.__userdict[username])
+                    self.ok('login', 'login success')
                     return self._reroute('login')
-                self.error('invalid credentials')
+                self.err('login', 'invalid credentials')
                 rscode = 401
             return render_template(self._templ['login']), rscode
 
@@ -126,6 +127,7 @@ class Arch(BaseArch):
         @bp.route('/logout')
         def logout():
             logout_user()
+            self.ok('logout', 'logout success')
             return self._reroute('logout')
 
         return bp

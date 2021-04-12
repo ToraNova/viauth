@@ -19,9 +19,9 @@ templates: login, profile, unauth, register, update, (users, register_other, upd
 reroutes: login, logout, register, update, (update_other, delete_other, register_other)
 '''
 class Base(Arch):
-    def __init__(self, dburi, ormbase = sqlorm.Base,  templates = {}, reroutes = {}, reroutes_kwarg = {}, url_prefix=None, authuser_class=None, routes_disabled = [], login_key = {}):
+    def __init__(self, dburi, ormbase = sqlorm.Base,  templates = {}, reroutes = {}, reroutes_kwarg = {}, rex_callback = {}, url_prefix=None, authuser_class=None, routes_disabled = [], login_key = {}):
         assert issubclass(authuser_class, UserMixin)
-        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, url_prefix, authuser_class, routes_disabled, login_key)
+        super().__init__(dburi, ormbase, templates, reroutes, reroutes_kwarg, rex_callback,  url_prefix, authuser_class, routes_disabled, login_key)
         self._default_tp('users', 'users.html')
         self._default_tp('register_other', 'register_other.html')
         self._default_tp('update_other', 'update_other.html')
@@ -37,13 +37,13 @@ class Base(Arch):
                 u.admin_create(request.form)
                 self.session.add(u)
                 self.session.commit()
-                self.ok('user account created.')
+                self.ok('register_other', 'user account created.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('sql integrity error.')
+                self.err('register_other', 'sql integrity error.')
                 rscode = 409
             except Exception as e:
-                self.ex(e)
+                self.ex('register_other', e)
             self.session.rollback()
         return False, rscode # fail
 
@@ -54,13 +54,13 @@ class Base(Arch):
                 u.admin_update(request.form) # runs the admin update callback
                 self.session.add(u)
                 self.session.commit()
-                self.ok('profile updated.')
+                self.ok('update_other', 'user account updated.')
                 return True, None # success
             except IntegrityError as e:
-                self.error('sql integrity error.')
+                self.err('update_other', 'sql integrity error.')
                 rscode = 409
             except Exception as e:
-                self.ex(e)
+                self.ex('update_other', e)
             self.session.rollback()
         return False, rscode
 
@@ -69,10 +69,10 @@ class Base(Arch):
             u.admin_delete() # runs the admin_delete callback
             self.session.delete(u)
             self.session.commit()
-            self.ok('account deleted.')
+            self.ok('delete_other', 'user account deleted.')
             return True # success
         except Exception as e:
-            self.ex(e)
+            self.ex('delete_other', e)
         self.session.rollback()
         return False
 

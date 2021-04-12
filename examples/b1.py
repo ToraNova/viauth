@@ -50,7 +50,7 @@ def test_run(client):
 
     rv = client.get('/basic/logout', follow_redirects = True)
     assert rv.status_code == 200
-    assert b'test with kwarg 123' in rv.data
+    assert b'test with kwarg 123' in rv.data # kwargs test
 
     rv = client.get('/treasure')
     assert rv.status_code == 401

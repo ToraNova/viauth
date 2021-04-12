@@ -26,17 +26,24 @@ def create_app(test_config=None):
 
     arch = Arch(
         app.config['DBURI'],
+        # use 'signup.html' instead of 'register.html' for registration template
+        # likewise for 'update' route
         templates = {
             'register':'signup.html',
             'update':'edit.html',
             },
+        # when login success, reroute to 'home'
         reroutes= {
             'login':'home',
+            },
+        # run custom user callback when 'logout' is successful.
+        # flashses off you GO! instead of the usual 'logout success'
+        rex_callback = {
+            'logout':{'ok':lambda *args, **kwargs: flash('off you GO!','ok')},
             },
     )
 
     # example of setting a callback for 'exception' event
-    arch.set_callback('ex', lambda ex : flash(str(ex), 'err') )
     arch.init_app(app)
 
     @app.route('/')
