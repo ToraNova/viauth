@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-_version = '0.2.0'
+_version = '0.2.2'
 
 setup(
     name='viauth',
