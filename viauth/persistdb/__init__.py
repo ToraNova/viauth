@@ -111,7 +111,6 @@ class Arch(basic.Arch):
         @app.teardown_appcontext
         def shutdown_session(exception=None):
             self.session.remove()
-        return app
 
     # override basic's generate with session check
     def generate_apparch(self):

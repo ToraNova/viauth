@@ -70,8 +70,6 @@ class Arch(BaseArch):
         def shutdown_session(exception=None):
             pass
 
-        return app
-
     def __unauth(self):
         try:
             tpl = render_template(self._templ['unauth'])
